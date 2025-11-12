@@ -968,7 +968,7 @@ async def backup_inventory_to_github():
 
     
 # --------- Запуск ---------
-def main():
+async def run():
     # Подтянуть каталоги описаний (оружие/доспехи/магия) перед запуском бота
     global MAGIC, NONMAGIC
     MAGIC, NONMAGIC = init_catalogs(str(DATA_DIR))
@@ -1047,8 +1047,8 @@ def main():
     scheduler.add_job(backup_inventory_to_github, "interval", hours=24)
     scheduler.start()
 
-    print("✅ Бот запущен!")
-    app.run_polling()
+    print("✅ Бот запущен!")  
+    await app.run_polling()
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(run())
