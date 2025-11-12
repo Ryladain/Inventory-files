@@ -624,13 +624,20 @@ async def add_item_start(update, context):
 async def add_item_category(update, context):
     cat = update.message.text.strip()
 
+    # Определяем, кому добавляем — игроку или мастеру
+    if update.effective_user.id == MASTER_ID:
+        uid = context.user_data.get("target_id", MASTER_ID)
+    else:
+        uid = update.effective_user.id
+
     # 🔙 Если выбрали "Назад" — возвращаем в главное меню
     if cat.lower() == "назад" or cat == "🔙 Назад":
         await update.message.reply_text(
             "↩️ Возврат в главное меню.",
-            reply_markup=default_keyboard(update.effective_user.id)
+            reply_markup=default_keyboard(uid)
         )
         return ConversationHandler.END
+
 
     # 🧾 Проверяем категорию
     if cat not in ITEMS:
@@ -662,7 +669,7 @@ async def add_item_category(update, context):
 
 
 async def add_item_name(update, context):
-    uid = update.effective_user.id
+    uid = context.user_data.get("target_id", update.effective_user.id)
     inv = get_inventory(uid)
     cat = context.user_data.get("add_cat")
 
