@@ -1047,4 +1047,8 @@ async def run_bot():
     await app.run_polling()
 
 if __name__ == "__main__":
-    asyncio.get_event_loop().run_until_complete(run_bot())
+    import nest_asyncio
+    import asyncio
+
+    nest_asyncio.apply()  # исправляет конфликт циклов
+    asyncio.run(run_bot())
