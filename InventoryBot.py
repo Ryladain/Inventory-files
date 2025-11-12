@@ -28,7 +28,7 @@ from item_catalog import init_catalogs, enrich_item, render_item_card, MAGIC, NO
 LIBRARY = []
 NONMAGIC = []
 
-load_dotenv()
+load_dotenv(dotenv_path=Path(__file__).with_name('.env'), override=True)
 TOKEN = os.getenv("BOT_TOKEN")
 DATA_FILE = Path("inventory_data.json")
 DATA_DIR = (Path(__file__).parent / "data").resolve()
