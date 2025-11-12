@@ -281,7 +281,7 @@ async def show_inventory(update, context):
         )
     await update.message.reply_text(
             "Инвентарь обновлён!",
-            reply_markup=default_keyboard()
+            reply_markup=default_keyboard(update.effective_user.id)
             )
 
 
@@ -316,7 +316,7 @@ async def show_remove_page(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
             text="↩️ Возврат в главное меню.",
-            reply_markup=default_keyboard()
+            reply_markup=default_keyboard(update.effective_user.id)
         )
         return ConversationHandler.END
 
@@ -399,7 +399,7 @@ async def on_remove_nav(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await context.bot.send_message(
             chat_id=q.message.chat_id,
             text="Главное меню:",
-            reply_markup=default_keyboard()
+            reply_markup=default_keyboard(update.effective_user.id)
         )
         return
 
@@ -482,13 +482,14 @@ async def simulate_days(update, context):
         # После симуляции возвращаем основное меню
     await update.message.reply_text(
         "🏁 Симуляция завершена! Что делаем дальше?",
-        reply_markup=default_keyboard()
+        reply_markup=default_keyboard(update.effective_user.id)
     )
 
     
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    reply_markup = default_keyboard()
+    user_id = update.effective_user.id
+    reply_markup = default_keyboard(user_id)
     await update.message.reply_text(
         "Привет! 🧙‍♂️ Я D&D инвентарь-бот.\n"
         "Выбери действие из меню ниже:",
@@ -497,7 +498,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 from telegram import ReplyKeyboardMarkup
 
-def default_keyboard():
+def default_keyboard(update.effective_user.id):
     return ReplyKeyboardMarkup(
         [
             ["➕ Добавить предмет", "➖ Удалить предмет"],
@@ -616,7 +617,7 @@ async def add_item_category(update, context):
     if cat.lower() == "назад" or cat == "🔙 Назад":
         await update.message.reply_text(
             "↩️ Возврат в главное меню.",
-            reply_markup=default_keyboard()
+            reply_markup=default_keyboard(update.effective_user.id)
         )
         return ConversationHandler.END
 
@@ -802,7 +803,7 @@ async def on_add_confirm_button(update: Update, context: ContextTypes.DEFAULT_TY
         await context.bot.send_message(
             chat_id=query.message.chat_id,
             text="↩️ Возврат в главное меню.",
-            reply_markup=default_keyboard()
+            reply_markup=default_keyboard(update.effective_user.id)
         )
 
 
@@ -988,7 +989,7 @@ PLAYERS = {
     "Карла": 111111111,
     "Энсо": 558026215,
     "Найт": 1615374911,
-    "Гундар": 444444444,
+    "Гундар": 6141258332,
     "Авитус": 555555555
 }
 
