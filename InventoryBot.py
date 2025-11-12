@@ -423,6 +423,10 @@ async def on_remove_click(update: Update, context: ContextTypes.DEFAULT_TYPE):
     inv[cat].remove(item)
     save_inventory(uid, inv)
 
+    # 🔔 Уведомление мастеру об удалении
+    action = f"удалил предмет: [{cat}] {item}"
+    await notify_master(context.bot, update.effective_user.first_name, action)
+
     await q.edit_message_text(f"❌ Удалено: [{cat}] {item}")
     await asyncio.sleep(1.5)
     await send_remove_page(update, context)
@@ -583,6 +587,12 @@ async def finalize_add(update, context, found, cat):
         parse_mode=constants.ParseMode.MARKDOWN,
         disable_web_page_preview=True
     )
+    # 🔔 Если мастер добавляет предмет игроку
+    if update.effective_user.id == MASTER_ID:
+        target_id = context.user_data.get("target_id")
+        if target_id:
+            await notify_player(context.bot, target_id, f"добавлен предмет [{cat}] {found['name']}")
+
     return ConversationHandler.END
 
 
@@ -703,6 +713,10 @@ async def add_item_name(update, context):
         item_entry += f" — {desc}"
     inv[cat].append(item_entry)
     save_inventory(uid, inv)
+
+    # 🔔 Уведомление мастеру о добавлении
+    action = f"добавил предмет: [{cat}] {name}"
+    await notify_master(context.bot, update.effective_user.first_name, action)
 
     # Готовим карточку
     card = render_item_card(found)
@@ -965,6 +979,96 @@ async def backup_inventory_to_github():
     except Exception as e:
         print(f"⚠️ Backup error: {e}")
 
+# =======================
+#     МАСТЕР-ИНВЕНТАРЬ
+# =======================
+MASTER_ID = 1840976992  # ← сюда впиши свой Telegram ID
+
+PLAYERS = {
+    "Карла": 111111111,
+    "Энсо": 558026215,
+    "Найт": 1615374911,
+    "Гундар": 444444444,
+    "Авитус": 555555555
+}
+
+PLAYER_WITH_SIMULATION = "Найт"
+
+def default_keyboard(user_id=None):
+    """Главное меню для разных ролей"""
+    # 👑 Мастер
+    if user_id == MASTER_ID:
+        return ReplyKeyboardMarkup([["📜 Мастер-инвентарь"]], resize_keyboard=True)
+    # 🎲 Игроки
+    for name, pid in PLAYERS.items():
+        if user_id == pid:
+            base = [
+                ["➕ Добавить предмет", "➖ Удалить предмет"],
+                ["📦 Инвентарь"],
+                ["📚 Категории"]
+            ]
+            if name == PLAYER_WITH_SIMULATION:
+                base[1].append("🎲 Симулировать день")
+            return ReplyKeyboardMarkup(base, resize_keyboard=True)
+    # 🧍 Гость / неизвестный
+    return ReplyKeyboardMarkup([["📚 Категории"]], resize_keyboard=True)
+
+
+async def show_master_inventory(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Меню выбора игрока для управления"""
+    if update.effective_user.id != MASTER_ID:
+        await update.message.reply_text("🚫 У вас нет доступа к мастер-инвентарю.")
+        return
+    keyboard = [[name] for name in PLAYERS.keys()]
+    keyboard.append(["🔙 Назад"])
+    markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
+    await update.message.reply_text("🎩 Выбери игрока:", reply_markup=markup)
+    return STATE_INVENTORY_CATEGORY
+
+
+async def master_select_player(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Мастер выбрал игрока"""
+    name = update.message.text.strip()
+    if name == "🔙 Назад":
+        await update.message.reply_text("↩️ Возврат в главное меню.", reply_markup=default_keyboard(MASTER_ID))
+        return ConversationHandler.END
+
+    if name not in PLAYERS:
+        await update.message.reply_text("⚠️ Неизвестный игрок.")
+        return STATE_INVENTORY_CATEGORY
+
+    target_id = PLAYERS[name]
+    context.user_data["target_id"] = target_id
+    context.user_data["target_name"] = name
+
+    keyboard = [
+        ["➕ Добавить предмет", "➖ Удалить предмет"],
+        ["📦 Инвентарь"],
+        ["📚 Категории"],
+        ["🔙 Назад"]
+    ]
+    await update.message.reply_text(f"📦 Управляешь инвентарём игрока: *{name}*",
+                                    parse_mode="Markdown",
+                                    reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True))
+    return STATE_ADD_CATEGORY
+
+
+# -------------------------
+#  Уведомления мастера и игроков
+# -------------------------
+async def notify_master(bot, player_name, action):
+    try:
+        await bot.send_message(MASTER_ID, f"🪶 Игрок {player_name} {action}")
+    except Exception:
+        pass
+
+async def notify_player(bot, player_id, action):
+    try:
+        await bot.send_message(player_id, f"📜 Мастер изменил ваш инвентарь: {action}")
+    except Exception:
+        pass
+
+
 
     
 # --------- Запуск ---------
@@ -1019,6 +1123,9 @@ async def run_bot():
     fallbacks=[CommandHandler("cancel", on_remove_cancel)],
     )
 
+    # Мастер-инвентарь
+    app.add_handler(MessageHandler(filters.Regex("^📜 Мастер-инвентарь$"), show_master_inventory))
+    app.add_handler(MessageHandler(filters.Regex("^(Карла|Энсо|Найт|Гундар|Авитус|🔙 Назад)$"), master_select_player))
     app.add_handler(CallbackQueryHandler(on_add_confirm_button, pattern="^(confirm_|add_custom_)"))
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.Regex("^📦 Инвентарь$"), show_inventory_menu))
