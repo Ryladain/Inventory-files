@@ -1042,15 +1042,24 @@ async def master_select_player(update: Update, context: ContextTypes.DEFAULT_TYP
     context.user_data["target_id"] = target_id
     context.user_data["target_name"] = name
 
+    # Базовые кнопки мастера при управлении игроком
     keyboard = [
         ["➕ Добавить предмет", "➖ Удалить предмет"],
         ["📦 Инвентарь"],
         ["📚 Категории"],
         ["🔙 Назад"]
     ]
-    await update.message.reply_text(f"📦 Управляешь инвентарём игрока: *{name}*",
-                                    parse_mode="Markdown",
-                                    reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True))
+
+    # Если выбран игрок с правом симуляции — добавляем кнопку 🎲
+    if name == PLAYER_WITH_SIMULATION:
+        keyboard[1].append("🎲 Симулировать день")
+
+    await update.message.reply_text(
+        f"📦 Управляешь инвентарём игрока: *{name}*",
+        parse_mode="Markdown",
+        reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
+    )
+
     return STATE_ADD_CATEGORY
 
 
