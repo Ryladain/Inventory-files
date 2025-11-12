@@ -738,11 +738,9 @@ async def add_item_name(update, context):
                 reply_markup=keyboard,
             )
 
-# Не завершаем диалог — ждём ответа пользователя
-context.user_data["pending_item"] = (cat, found_name)
-return STATE_ADD_CONFIRM
-
-
+    # Не завершаем диалог — ждём ответа пользователя
+    context.user_data["pending_item"] = (cat, found_name)
+    return STATE_ADD_CONFIRM
 
 
     # Если есть близкое совпадение
