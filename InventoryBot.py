@@ -25,6 +25,19 @@ from telegram.ext import (
     filters,
 )
 
+BACK_RE = r"^(?:🔙\s*)?Назад$"
+
+async def end_and_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE, text: str = "↩️ Возврат в главное меню."):
+    chat_id = update.effective_chat.id if update.effective_chat else update.callback_query.message.chat_id
+    # подчистим залипающие ключи состояний
+    for k in ("inv_cat","inv_page","inv_items","remove_cat","page","items","add_cat","pending_item","pending_desc","raw_name"):
+        context.user_data.pop(k, None)
+    await context.bot.send_message(chat_id=chat_id, text=text, reply_markup=keyboard_for(update, context))
+    return ConversationHandler.END
+
+async def on_any_back(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    return await end_and_main_menu(update, context)
+
 from telegram.ext import ConversationHandler
 
 async def end_and_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE, text: str = "↩️ Возврат в главное меню."):
@@ -311,7 +324,7 @@ async def show_inventory_menu(update: Update, context: ContextTypes.DEFAULT_TYPE
 
 async def show_inventory_list(update: Update, context: ContextTypes.DEFAULT_TYPE):
     cat = update.message.text.strip()
-    if cat == "🔙 Назад":
+    if "назад" in cat.lower():
         return await end_and_main_menu(update, context)
 
 
@@ -405,7 +418,7 @@ async def on_inventory_item(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode=constants.ParseMode.MARKDOWN,
         disable_web_page_preview=True
     )
-    return await end_and_main_menu(update, context)
+    return await end_and_main_menu(update, context)   # ← вместо ConversationHandler.END
 
 
 
@@ -480,8 +493,8 @@ async def on_remove_nav(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif q.data == "pg_next":
         context.user_data["page"] += 1
     elif q.data == "pg_exit":
-        await go_home(update, context)
-        return
+        await q.edit_message_text("↩️ Возврат в главное меню.")
+        return await end_and_main_menu(update, context)
     await send_remove_page(update, context)
 
 async def on_remove_click(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -501,14 +514,11 @@ async def on_remove_click(update: Update, context: ContextTypes.DEFAULT_TYPE):
     inv[cat].remove(item)
     save_inventory(uid, inv)
 
-    # уведомим мастера
-    action = f"удалил предмет: [{cat}] {item}"
-    await notify_master(context.bot, update.effective_user.first_name, action)
+    await notify_master(context.bot, update.effective_user.first_name, f"удалил предмет: [{cat}] {item}")
 
     await q.edit_message_text(f"❌ Удалено: [{cat}] {item}")
+    return await end_and_main_menu(update, context)   # ← ВАЖНО
 
-    # ВАЖНО: на этом шаге выходим из разговора и возвращаем валидное меню.
-    return await end_and_main_menu(update, context)
 
 
 
@@ -525,9 +535,8 @@ async def ask_simulation_days(update: Update, context: ContextTypes.DEFAULT_TYPE
 
 async def handle_simulation_days(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text.strip()
-    if text == "🔙 Назад":
-        await go_home(update, context)
-        return ConversationHandler.END
+    if "назад" in text.lower():
+        return await end_and_main_menu(update, context)
 
     if text == "📝 Другое":
         await update.message.reply_text("Введите количество дней числом (например: 12):")
@@ -731,10 +740,8 @@ async def show_master_inventory(update: Update, context: ContextTypes.DEFAULT_TY
 
 async def master_select_player(update: Update, context: ContextTypes.DEFAULT_TYPE):
     name = update.message.text.strip()
-    if name == "🔙 Назад":
-        context.user_data.pop("target_id", None)
-        context.user_data.pop("target_name", None)
-        await go_home(update, context)
+    if "назад" in name.lower():
+        await update.message.reply_text("↩️ Возврат в главное меню.", reply_markup=default_keyboard(MASTER_ID))
         return ConversationHandler.END
 
     if name not in PLAYERS:
@@ -790,19 +797,22 @@ async def run_bot():
     # разговорники
     remove_conv = ConversationHandler(
         entry_points=[MessageHandler(filters.Regex("^➖ Удалить предмет$"), remove_item)],
-        states={STATE_REMOVE_CATEGORY: [MessageHandler(filters.TEXT & ~filters.COMMAND, show_remove_page)]},
-        fallbacks=[],
+        states={ STATE_REMOVE_CATEGORY: [MessageHandler(filters.TEXT & ~filters.COMMAND, show_remove_page)] },
+        fallbacks=[MessageHandler(filters.Regex(BACK_RE), on_any_back)],
     )
+
     inventory_conv = ConversationHandler(
         entry_points=[MessageHandler(filters.Regex("^📦 Инвентарь$"), show_inventory_menu)],
-        states={STATE_INVENTORY_CATEGORY: [MessageHandler(filters.TEXT & ~filters.COMMAND, show_inventory_list)]},
-        fallbacks=[],
+        states={ STATE_INVENTORY_CATEGORY: [MessageHandler(filters.TEXT & ~filters.COMMAND, show_inventory_list)] },
+        fallbacks=[MessageHandler(filters.Regex(BACK_RE), on_any_back)],
     )
+
     simulate_conv = ConversationHandler(
         entry_points=[MessageHandler(filters.Regex("^🎲 Симулировать день$"), ask_simulation_days)],
-        states={STATE_SIMULATE_DAYS: [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_simulation_days)]},
-        fallbacks=[],
+        states={ STATE_SIMULATE_DAYS: [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_simulation_days)] },
+        fallbacks=[MessageHandler(filters.Regex(BACK_RE), on_any_back)],
     )
+
     add_conv = ConversationHandler(
         entry_points=[MessageHandler(filters.Regex("^➕ Добавить предмет$"), add_item_start)],
         states={
@@ -810,15 +820,14 @@ async def run_bot():
             STATE_ADD_NAME:     [MessageHandler(filters.TEXT & ~filters.COMMAND, add_item_name)],
             STATE_ADD_CONFIRM:  [CallbackQueryHandler(on_add_confirm_button, pattern="^(confirm_|add_custom_)")],
         },
-        fallbacks=[],
+        fallbacks=[MessageHandler(filters.Regex(BACK_RE), on_any_back)],
     )
-
-    # регистрация
+      # регистрация
     app.add_handler(inventory_conv)
     app.add_handler(remove_conv)
     app.add_handler(simulate_conv)
     app.add_handler(add_conv)
-
+    app.add_handler(MessageHandler(filters.Regex(BACK_RE), on_any_back))
     app.add_handler(CallbackQueryHandler(on_inventory_nav,  pattern="^inv_(prev|next|exit)$"))
     app.add_handler(CallbackQueryHandler(on_inventory_item, pattern="^inv_[0-9]+$"))
     app.add_handler(CallbackQueryHandler(on_remove_click,   pattern="^rm_"))
