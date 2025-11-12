@@ -25,6 +25,18 @@ from telegram.ext import (
     filters,
 )
 
+from telegram.ext import ConversationHandler
+
+async def end_and_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE, text: str = "↩️ Возврат в главное меню."):
+    """Корректно завершает любой Conversation и показывает актуальное меню."""
+    chat_id = update.effective_chat.id if update.effective_chat else update.callback_query.message.chat_id
+    # подчистим временный контекст, чтобы не залипать в состояниях
+    for k in ("inv_cat","inv_page","inv_items","remove_cat","page","items","add_cat","pending_item","pending_desc","raw_name"):
+        context.user_data.pop(k, None)
+    await context.bot.send_message(chat_id=chat_id, text=text, reply_markup=keyboard_for(update, context))
+    return ConversationHandler.END
+
+
 # === библиотека предметов ===
 from item_catalog import init_catalogs, enrich_item, render_item_card, MAGIC, NONMAGIC
 
@@ -300,8 +312,8 @@ async def show_inventory_menu(update: Update, context: ContextTypes.DEFAULT_TYPE
 async def show_inventory_list(update: Update, context: ContextTypes.DEFAULT_TYPE):
     cat = update.message.text.strip()
     if cat == "🔙 Назад":
-        await go_home(update, context)
-        return ConversationHandler.END
+        return await end_and_main_menu(update, context)
+
 
     uid = update.effective_user.id
     inv = get_inventory(uid)
@@ -389,12 +401,12 @@ async def on_inventory_item(update: Update, context: ContextTypes.DEFAULT_TYPE):
         full["description"] = user_desc
 
     await q.message.reply_text(
-        render_item_card(full),
+        card,
         parse_mode=constants.ParseMode.MARKDOWN,
         disable_web_page_preview=True
     )
-    await go_home(update, context)
-    return ConversationHandler.END
+    return await end_and_main_menu(update, context)
+
 
 
 # --------- Удаление ---------
@@ -411,8 +423,7 @@ async def remove_item(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def show_remove_page(update: Update, context: ContextTypes.DEFAULT_TYPE):
     cat = update.message.text.strip()
     if "назад" in cat.lower():
-        await go_home(update, context)
-        return ConversationHandler.END
+        return await end_and_main_menu(update, context)
 
     valid_cats = list(ITEMS.keys())
     if cat.capitalize() not in valid_cats:
@@ -490,9 +501,15 @@ async def on_remove_click(update: Update, context: ContextTypes.DEFAULT_TYPE):
     inv[cat].remove(item)
     save_inventory(uid, inv)
 
+    # уведомим мастера
+    action = f"удалил предмет: [{cat}] {item}"
+    await notify_master(context.bot, update.effective_user.first_name, action)
+
     await q.edit_message_text(f"❌ Удалено: [{cat}] {item}")
-    await go_home(update, context)
-    return ConversationHandler.END
+
+    # ВАЖНО: на этом шаге выходим из разговора и возвращаем валидное меню.
+    return await end_and_main_menu(update, context)
+
 
 
 # --------- Симуляция ---------
@@ -557,22 +574,36 @@ async def simulate_days(update, context):
 
 
 # --------- Добавление предметов ---------
-def find_closest_item(name: str, category: str | None = None):
-    """Ближайшее совпадение внутри подходящей библиотеки."""
-    query = normalize_text(name)
-    search_space = MAGIC if (category and "маг" in category.lower()) else NONMAGIC
-    names = [normalize_text(i.get("name")) for i in search_space if i.get("name")]
+def norm(s): 
+    return (s or "").strip().lower()
 
+def find_closest_item(name: str, category: str | None = None):
+    query = norm(name)
+    cat = norm(category or "")
+
+    # базовый пул
+    if "маг" in cat:
+        base = MAGIC
+    else:
+        base = NONMAGIC
+
+    # сузим пул по категории; если вдруг пусто — вернёмся к базовому
+    pool = [i for i in base if norm(i.get("category")) == cat] or base
+
+    names = [norm(i.get("name")) for i in pool if i.get("name")]
     best = process.extractOne(query, names, scorer=fuzz.WRatio)
-    if not best:
+    if not best: 
         return None
+
     best_name, score, _ = best
-    if score < 80:
+    if score < 60:
         return None
-    for it in search_space:
-        if normalize_text(it.get("name")) == best_name:
+
+    for it in pool:
+        if norm(it.get("name")) == best_name:
             return it
     return None
+
 
 async def add_item_start(update, context):
     if update.effective_user.id == MASTER_ID and "target_id" not in context.user_data:
@@ -660,39 +691,33 @@ async def on_add_confirm_button(update: Update, context: ContextTypes.DEFAULT_TY
     name = pend.get("name")
     user_desc = pend.get("desc")
 
-    if data == "confirm_yes" and name and cat:
-        inv = get_inventory(uid)
-        # библиотечный — храним просто именем; описание подтянется при показе
-        inv[cat].append(name if not user_desc else make_custom_string(name, user_desc))
-        save_inventory(uid, inv)
+# внутри on_add_confirm_button:
 
-        card = render_item_card({"name": name, "description": user_desc, "category": cat})
-        await q.edit_message_text(f"✅ Добавлено в [{cat}]:\n\n{card}",
-                                  parse_mode=constants.ParseMode.MARKDOWN,
-                                  disable_web_page_preview=True)
-        await go_home(update, context)
-        return ConversationHandler.END
+    if data == "confirm_yes" and found_name:
+        ...
+        await q.edit_message_text(
+            f"✅ Добавлено в {cat}:\n\n*{found_name}*\n\n{desc}",
+            parse_mode=constants.ParseMode.MARKDOWN,
+            disable_web_page_preview=True
+        )
+        return await end_and_main_menu(update, context)
 
     if data == "confirm_no":
-        kb = InlineKeyboardMarkup([[InlineKeyboardButton("✅ Да", callback_data="add_custom_yes"),
-                                    InlineKeyboardButton("❌ Нет", callback_data="add_custom_no")]])
-        await q.edit_message_text("⚙️ Не найдено в библиотеке.\nДобавить как пользовательский предмет?", reply_markup=kb)
-        return
+        ...
+        return  # ждём следующий колбэк
 
     if data == "add_custom_yes":
-        inv = get_inventory(uid)
-        nm = name or context.user_data.get("raw_name", "Неизвестный предмет")
-        inv[cat].append(make_custom_string(nm, user_desc))
-        save_inventory(uid, inv)
-        await q.edit_message_text(f"Добавлено в [{cat}]:\n\n*{nm}*\n\n{user_desc or '— пользовательское описание —'}",
-                                  parse_mode=constants.ParseMode.MARKDOWN)
-        await go_home(update, context)
-        return ConversationHandler.END
+        ...
+        await q.edit_message_text(
+            f"Добавлено в {cat}:\n\n*{name}*\n\n{desc}",
+            parse_mode=constants.ParseMode.MARKDOWN
+        )
+        return await end_and_main_menu(update, context)
 
     if data == "add_custom_no":
         await q.edit_message_text("🚫 Добавление отменено.")
-        await go_home(update, context)
-        return ConversationHandler.END
+        return await end_and_main_menu(update, context)
+
 
 
 # --------- Мастер-инвентарь ---------
