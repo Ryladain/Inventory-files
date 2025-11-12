@@ -4,6 +4,8 @@ import re
 import asyncio
 import unicodedata
 import subprocess, datetime
+import os
+from dotenv import load_dotenv
 from rapidfuzz import fuzz, process
 from pathlib import Path
 from telegram.ext import CallbackQueryHandler
@@ -26,8 +28,8 @@ from item_catalog import init_catalogs, enrich_item, render_item_card, MAGIC, NO
 LIBRARY = []
 NONMAGIC = []
 
-
-TOKEN = "8139125714:AAHMZpnVgd1rKOuZF-zMR2078dB3jI-R_Fc"  # <-- вставь токен
+load_dotenv()
+TOKEN = os.getenv("BOT_TOKEN")
 DATA_FILE = Path("inventory_data.json")
 DATA_DIR = (Path(__file__).parent / "data").resolve()
 
