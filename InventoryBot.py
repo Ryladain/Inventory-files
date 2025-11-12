@@ -968,7 +968,7 @@ async def backup_inventory_to_github():
 
     
 # --------- Запуск ---------
-async def run():
+async def run_bot():
     # Подтянуть каталоги описаний (оружие/доспехи/магия) перед запуском бота
     global MAGIC, NONMAGIC
     MAGIC, NONMAGIC = init_catalogs(str(DATA_DIR))
@@ -1047,4 +1047,4 @@ async def run():
     await app.run_polling()
 
 if __name__ == "__main__":
-    asyncio.run(run())
+    asyncio.run(run_bot())
