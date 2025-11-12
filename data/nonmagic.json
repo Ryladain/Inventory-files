@@ -1,0 +1,967 @@
+[
+  {
+    "category": "Одежда",
+    "name": "Комплект одежды",
+    "description": null
+  },
+  {
+    "category": "Снаряжение",
+    "name": "Абак",
+    "description": null
+  },
+  {
+    "category": "Снаряжение",
+    "name": "Алхимический огонь (фляга)",
+    "description": null
+  },
+  {
+    "category": "Снаряжение",
+    "name": "Блок и лебёдка",
+    "description": null
+  },
+  {
+    "category": "Снаряжение",
+    "name": "Боеприпасы",
+    "description": null
+  },
+  {
+    "category": "Снаряжение",
+    "name": "Арбалетные болты (20)",
+    "description": null
+  },
+  {
+    "category": "Снаряжение",
+    "name": "Иглы для трубок (50)",
+    "description": null
+  },
+  {
+    "category": "Снаряжение",
+    "name": "Снаряды для пращи (20)",
+    "description": null
+  },
+  {
+    "category": "Снаряжение",
+    "name": "Стрелы (20)",
+    "description": null
+  },
+  {
+    "category": "Снаряжение",
+    "name": "Бочка",
+    "description": null
+  },
+  {
+    "category": "Снаряжение",
+    "name": "Бумага (один лист)",
+    "description": null
+  },
+  {
+    "category": "Снаряжение",
+    "name": "Бурдюк",
+    "description": null
+  },
+  {
+    "category": "Снаряжение",
+    "name": "Бутылка, стеклянная",
+    "description": null
+  },
+  {
+    "category": "Снаряжение",
+    "name": "Ведро",
+    "description": null
+  },
+  {
+    "category": "Снаряжение",
+    "name": "Верёвка, пеньковая (50 футов)",
+    "description": null
+  },
+  {
+    "category": "Снаряжение",
+    "name": "Верёвка, шёлковая (50 футов)",
+    "description": null
+  },
+  {
+    "category": "Снаряжение",
+    "name": "Весы, торговые",
+    "description": null
+  },
+  {
+    "category": "Снаряжение",
+    "name": "Воск",
+    "description": null
+  },
+  {
+    "category": "Снаряжение",
+    "name": "Горшок, железный",
+    "description": null
+  },
+  {
+    "category": "Снаряжение",
+    "name": "Духи (флакон)",
+    "description": null
+  },
+  {
+    "category": "Снаряжение",
+    "name": "Замок",
+    "description": null
+  },
+  {
+    "category": "Снаряжение",
+    "name": "Зелье лечения",
+    "description": null
+  },
+  {
+    "category": "Снаряжение",
+    "name": "Зеркало, стальное",
+    "description": null
+  },
+  {
+    "category": "Снаряжение",
+    "name": "Камплоты (20 штук в сумке)",
+    "description": null
+  },
+  {
+    "category": "Снаряжение",
+    "name": "Кандалы",
+    "description": null
+  },
+  {
+    "category": "Снаряжение",
+    "name": "Кирка, горняцкая",
+    "description": null
+  },
+  {
+    "category": "Снаряжение",
+    "name": "Кислота (флакон)",
+    "description": null
+  },
+  {
+    "category": "Снаряжение",
+    "name": "Книга",
+    "description": null
+  },
+  {
+    "category": "Снаряжение",
+    "name": "Книга заклинаний",
+    "description": null
+  },
+  {
+    "category": "Снаряжение",
+    "name": "Колокольчик",
+    "description": null
+  },
+  {
+    "category": "Снаряжение",
+    "name": "Колчан",
+    "description": null
+  },
+  {
+    "category": "Снаряжение",
+    "name": "Кольцо-печать",
+    "description": null
+  },
+  {
+    "category": "Снаряжение",
+    "name": "Комплект для лазания",
+    "description": null
+  },
+  {
+    "category": "Снаряжение",
+    "name": "Комплект для рыбалки",
+    "description": null
+  },
+  {
+    "category": "Снаряжение",
+    "name": "Комплект целителя",
+    "description": null
+  },
+  {
+    "category": "Снаряжение",
+    "name": "Контейнер для арбалетных болтов",
+    "description": null
+  },
+  {
+    "category": "Снаряжение",
+    "name": "Контейнер для карт и свитков",
+    "description": null
+  },
+  {
+    "category": "Снаряжение",
+    "name": "Корзина",
+    "description": null
+  },
+  {
+    "category": "Снаряжение",
+    "name": "Кошель",
+    "description": null
+  },
+  {
+    "category": "Снаряжение",
+    "name": "Крюк-кошка",
+    "description": null
+  },
+  {
+    "category": "Снаряжение",
+    "name": "Кувшин или графин",
+    "description": null
+  },
+  {
+    "category": "Снаряжение",
+    "name": "Лампа",
+    "description": null
+  },
+  {
+    "category": "Снаряжение",
+    "name": "Лестница (10 футов)",
+    "description": null
+  },
+  {
+    "category": "Снаряжение",
+    "name": "Ломик",
+    "description": null
+  },
+  {
+    "category": "Снаряжение",
+    "name": "Лопата",
+    "description": null
+  },
+  {
+    "category": "Снаряжение",
+    "name": "Магическая фокусировка",
+    "description": null
+  },
+  {
+    "category": "Снаряжение",
+    "name": "Волшебная палочка",
+    "description": null
+  },
+  {
+    "category": "Снаряжение",
+    "name": "Жезл",
+    "description": null
+  },
+  {
+    "category": "Снаряжение",
+    "name": "Кристалл",
+    "description": null
+  },
+  {
+    "category": "Снаряжение",
+    "name": "Посох",
+    "description": null
+  },
+  {
+    "category": "Снаряжение",
+    "name": "Сфера",
+    "description": null
+  },
+  {
+    "category": "Снаряжение",
+    "name": "Масло (фляга)",
+    "description": null
+  },
+  {
+    "category": "Снаряжение",
+    "name": "Мел (1 кусочек)",
+    "description": null
+  },
+  {
+    "category": "Снаряжение",
+    "name": "Металлические шарики (1000 шт. в сумке)",
+    "description": null
+  },
+  {
+    "category": "Снаряжение",
+    "name": "Мешок",
+    "description": null
+  },
+  {
+    "category": "Снаряжение",
+    "name": "Мешочек с компонентами",
+    "description": null
+  },
+  {
+    "category": "Снаряжение",
+    "name": "Молот, кузнечный",
+    "description": null
+  },
+  {
+    "category": "Снаряжение",
+    "name": "Молоток",
+    "description": null
+  },
+  {
+    "category": "Снаряжение",
+    "name": "Мыло",
+    "description": null
+  },
+  {
+    "category": "Снаряжение",
+    "name": "Одеяло",
+    "description": null
+  },
+  {
+    "category": "Снаряжение",
+    "name": "Охотничий капкан",
+    "description": null
+  },
+  {
+    "category": "Снаряжение",
+    "name": "Палатка, двухместная",
+    "description": null
+  },
+  {
+    "category": "Снаряжение",
+    "name": "Пергамент (один лист)",
+    "description": null
+  },
+  {
+    "category": "Снаряжение",
+    "name": "Песочные часы",
+    "description": null
+  },
+  {
+    "category": "Снаряжение",
+    "name": "Писчее перо",
+    "description": null
+  },
+  {
+    "category": "Снаряжение",
+    "name": "Подзорная труба",
+    "description": null
+  },
+  {
+    "category": "Снаряжение",
+    "name": "Противоядие (флакон)",
+    "description": null
+  },
+  {
+    "category": "Снаряжение",
+    "name": "Рационы (1 день)",
+    "description": null
+  },
+  {
+    "category": "Снаряжение",
+    "name": "Рюкзак",
+    "description": null
+  },
+  {
+    "category": "Снаряжение",
+    "name": "Риса",
+    "description": null
+  },
+  {
+    "category": "Снаряжение",
+    "name": "Свеча",
+    "description": null
+  },
+  {
+    "category": "Снаряжение",
+    "name": "Святая вода (фляга)",
+    "description": null
+  },
+  {
+    "category": "Снаряжение",
+    "name": "Священный символ",
+    "description": null
+  },
+  {
+    "category": "Снаряжение",
+    "name": "Амулет",
+    "description": null
+  },
+  {
+    "category": "Снаряжение",
+    "name": "Реликварий",
+    "description": null
+  },
+  {
+    "category": "Снаряжение",
+    "name": "Эмблема",
+    "description": null
+  },
+  {
+    "category": "Снаряжение",
+    "name": "Сигнальный свисток",
+    "description": null
+  },
+  {
+    "category": "Снаряжение",
+    "name": "Спальник",
+    "description": null
+  },
+  {
+    "category": "Снаряжение",
+    "name": "Столовый набор",
+    "description": null
+  },
+  {
+    "category": "Снаряжение",
+    "name": "Сундук",
+    "description": null
+  },
+  {
+    "category": "Снаряжение",
+    "name": "Таран, портативный",
+    "description": null
+  },
+  {
+    "category": "Снаряжение",
+    "name": "Точильный камень",
+    "description": null
+  },
+  {
+    "category": "Снаряжение",
+    "name": "Торговый камень",
+    "description": null
+  },
+  {
+    "category": "Снаряжение",
+    "name": "Трутница",
+    "description": null
+  },
+  {
+    "category": "Снаряжение",
+    "name": "Увеличительное стекло",
+    "description": null
+  },
+  {
+    "category": "Снаряжение",
+    "name": "Факел",
+    "description": null
+  },
+  {
+    "category": "Снаряжение",
+    "name": "Флакон",
+    "description": null
+  },
+  {
+    "category": "Снаряжение",
+    "name": "Фляга или большая кружка",
+    "description": null
+  },
+  {
+    "category": "Снаряжение",
+    "name": "Фокусировка друидов",
+    "description": null
+  },
+  {
+    "category": "Снаряжение",
+    "name": "Веточка омелы",
+    "description": null
+  },
+  {
+    "category": "Снаряжение",
+    "name": "Деревянный посох",
+    "description": null
+  },
+  {
+    "category": "Снаряжение",
+    "name": "Тисовая палочка",
+    "description": null
+  },
+  {
+    "category": "Снаряжение",
+    "name": "Тотем",
+    "description": null
+  },
+  {
+    "category": "Снаряжение",
+    "name": "Фонарь, закрытый",
+    "description": null
+  },
+  {
+    "category": "Снаряжение",
+    "name": "Фонарь, направленный",
+    "description": null
+  },
+  {
+    "category": "Снаряжение",
+    "name": "Цепь (10 футов)",
+    "description": null
+  },
+  {
+    "category": "Снаряжение",
+    "name": "Чернила (бутылочка 30 граммов)",
+    "description": null
+  },
+  {
+    "category": "Снаряжение",
+    "name": "Шест (10 футов)",
+    "description": null
+  },
+  {
+    "category": "Снаряжение",
+    "name": "Шипы, железные (10)",
+    "description": null
+  },
+  {
+    "category": "Снаряжение",
+    "name": "Шлямбур",
+    "description": null
+  },
+  {
+    "category": "Снаряжение",
+    "name": "Яд, простой (флакон)",
+    "description": null
+  },
+  {
+    "category": "Инструменты",
+    "name": "Воровские инструменты",
+    "description": null
+  },
+  {
+    "category": "Инструменты",
+    "name": "Драконьи шахматы",
+    "description": null
+  },
+  {
+    "category": "Инструменты",
+    "name": "Карты",
+    "description": null
+  },
+  {
+    "category": "Инструменты",
+    "name": "Кости",
+    "description": null
+  },
+  {
+    "category": "Инструменты",
+    "name": "Ставка трёх драконов",
+    "description": null
+  },
+  {
+    "category": "Инструменты",
+    "name": "Инструменты навигатора",
+    "description": null
+  },
+  {
+    "category": "Инструменты",
+    "name": "Инструменты отравителя",
+    "description": null
+  },
+  {
+    "category": "Инструменты",
+    "name": "Барабан",
+    "description": null
+  },
+  {
+    "category": "Инструменты",
+    "name": "Виола",
+    "description": null
+  },
+  {
+    "category": "Инструменты",
+    "name": "Волынка",
+    "description": null
+  },
+  {
+    "category": "Инструменты",
+    "name": "Лира",
+    "description": null
+  },
+  {
+    "category": "Инструменты",
+    "name": "Лютня",
+    "description": null
+  },
+  {
+    "category": "Инструменты",
+    "name": "Рожок",
+    "description": null
+  },
+  {
+    "category": "Инструменты",
+    "name": "Свирель",
+    "description": null
+  },
+  {
+    "category": "Инструменты",
+    "name": "Флейта",
+    "description": null
+  },
+  {
+    "category": "Инструменты",
+    "name": "Цимбалы",
+    "description": null
+  },
+  {
+    "category": "Инструменты",
+    "name": "Шалмей",
+    "description": null
+  },
+  {
+    "category": "Инструменты",
+    "name": "Инструменты алхимика",
+    "description": null
+  },
+  {
+    "category": "Инструменты",
+    "name": "Инструменты гончара",
+    "description": null
+  },
+  {
+    "category": "Инструменты",
+    "name": "Инструменты каллиграфа",
+    "description": null
+  },
+  {
+    "category": "Инструменты",
+    "name": "Инструменты каменщика",
+    "description": null
+  },
+  {
+    "category": "Инструменты",
+    "name": "Инструменты картографа",
+    "description": null
+  },
+  {
+    "category": "Инструменты",
+    "name": "Инструменты кожевника",
+    "description": null
+  },
+  {
+    "category": "Инструменты",
+    "name": "Инструменты кузнеца",
+    "description": null
+  },
+  {
+    "category": "Инструменты",
+    "name": "Инструменты пивовара",
+    "description": null
+  },
+  {
+    "category": "Инструменты",
+    "name": "Инструменты плотника",
+    "description": null
+  },
+  {
+    "category": "Инструменты",
+    "name": "Инструменты повара",
+    "description": null
+  },
+  {
+    "category": "Инструменты",
+    "name": "Инструменты резчика по дереву",
+    "description": null
+  },
+  {
+    "category": "Инструменты",
+    "name": "Инструменты ремонтника",
+    "description": null
+  },
+  {
+    "category": "Инструменты",
+    "name": "Инструменты сапожника",
+    "description": null
+  },
+  {
+    "category": "Инструменты",
+    "name": "Инструменты стеклодува",
+    "description": null
+  },
+  {
+    "category": "Инструменты",
+    "name": "Инструменты ткача",
+    "description": null
+  },
+  {
+    "category": "Инструменты",
+    "name": "Инструменты художника",
+    "description": null
+  },
+  {
+    "category": "Инструменты",
+    "name": "Инструменты ювелира",
+    "description": null
+  },
+  {
+    "category": "Наборы",
+    "name": "Набор артиста",
+    "description": null
+  },
+  {
+    "category": "Наборы",
+    "name": "Набор взломщика",
+    "description": null
+  },
+  {
+    "category": "Наборы",
+    "name": "Набор дипломата",
+    "description": null
+  },
+  {
+    "category": "Наборы",
+    "name": "Набор исследователя подземелий",
+    "description": null
+  },
+  {
+    "category": "Наборы",
+    "name": "Набор путешественника",
+    "description": null
+  },
+  {
+    "category": "Наборы",
+    "name": "Набор священника",
+    "description": null
+  },
+  {
+    "category": "Наборы",
+    "name": "Набор учёного",
+    "description": null
+  },
+  {
+    "category": "Наборы",
+    "name": "Набор охотника на монстров",
+    "description": null
+  },
+  {
+    "category": "Доспехи",
+    "name": "Стёганый доспех",
+    "description": ""
+  },
+  {
+    "category": "Доспехи",
+    "name": "Кожаный доспех",
+    "description": ""
+  },
+  {
+    "category": "Доспехи",
+    "name": "Клёпаный кожаный доспех",
+    "description": ""
+  },
+  {
+    "category": "Доспехи",
+    "name": "Шкурный доспех",
+    "description": ""
+  },
+  {
+    "category": "Доспехи",
+    "name": "Кольчужная рубаха",
+    "description": "Средний доспех. КД 13 + мод. Лов (макс. 2). Вес 20 фнт."
+  },
+  {
+    "category": "Доспехи",
+    "name": "Чешуйчатый доспех",
+    "description": ""
+  },
+  {
+    "category": "Доспехи",
+    "name": "Кираса",
+    "description": "Средний доспех. КД 14 + мод. Лов (макс. 2). Вес 20 фнт."
+  },
+  {
+    "category": "Доспехи",
+    "name": "Полулаты",
+    "description": "Средний доспех. КД 15 + мод. Лов (макс. 2). Вес 40 фнт. Помеха Скрытности."
+  },
+  {
+    "category": "Доспехи",
+    "name": "Кольчатый доспех",
+    "description": ""
+  },
+  {
+    "category": "Доспехи",
+    "name": "Кольчуга",
+    "description": "Тяжёлый доспех. КД 16. Требует Сил 13. Вес 55 фнт. Помеха Скрытности."
+  },
+  {
+    "category": "Доспехи",
+    "name": "Латы",
+    "description": "Тяжёлый доспех. КД 18. Требует Сил 15. Вес 65 фнт. Помеха Скрытности."
+  },
+  {
+    "category": "Доспехи",
+    "name": "Пластинчатый доспех",
+    "description": ""
+  },
+  {
+    "category": "Доспехи",
+    "name": "Щит",
+    "description": "Даёт бонус +2 к КД. Вес 6 фнт."
+  },
+  {
+    "category": "Оружие",
+    "name": "Боевой посох",
+    "description": "Простое рукопашное оружие. 1к6 дробящий. Универсальное (1к8). Вес 4 фнт."
+  },
+  {
+    "category": "Оружие",
+    "name": "Булава",
+    "description": "Простое рукопашное оружие. 1к6 дробящий. Вес 4 фнт."
+  },
+  {
+    "category": "Оружие",
+    "name": "Дубинка",
+    "description": "Простое рукопашное оружие. 1к4 дробящий. Лёгкое. Вес 2 фнт."
+  },
+  {
+    "category": "Оружие",
+    "name": "Кинжал",
+    "description": "Простое рукопашное оружие. 1к4 колющий. Лёгкое, метательное (20/60), фехтовальное. Вес 1 фнт."
+  },
+  {
+    "category": "Оружие",
+    "name": "Копьё",
+    "description": "Простое рукопашное оружие. 1к6 колющий. Метательное (20/60), универсальное (1к8). Вес 3 фнт."
+  },
+  {
+    "category": "Оружие",
+    "name": "Лёгкий молот",
+    "description": "Простое рукопашное оружие. 1к4 дробящий. Лёгкое, метательное (20/60). Вес 2 фнт."
+  },
+  {
+    "category": "Оружие",
+    "name": "Метательное копьё",
+    "description": "Простое рукопашное оружие. 1к6 колющий. Метательное (30/120). Вес 2 фнт."
+  },
+  {
+    "category": "Оружие",
+    "name": "Палица",
+    "description": "Простое рукопашное оружие. 1к8 дробящий. Двуручное. Вес 10 фнт."
+  },
+  {
+    "category": "Оружие",
+    "name": "Ручной топор",
+    "description": "Простое рукопашное оружие. 1к6 рубящий. Лёгкое, метательное (20/60). Вес 2 фнт."
+  },
+  {
+    "category": "Оружие",
+    "name": "Серп",
+    "description": "Простое рукопашное оружие. 1к4 рубящий. Лёгкое. Вес 2 фнт."
+  },
+  {
+    "category": "Оружие",
+    "name": "Арбалет, лёгкий",
+    "description": "Простое дальнобойное оружие. 1к8 колющий. Боеприпас (80/320), двуручное, перезарядка. Вес 5 фнт."
+  },
+  {
+    "category": "Оружие",
+    "name": "Дротик",
+    "description": "Простое дальнобойное оружие. 1к4 колющий. Метательное (20/60), фехтовальное. Вес ¼ фнт."
+  },
+  {
+    "category": "Оружие",
+    "name": "Короткий лук",
+    "description": "Простое дальнобойное оружие. 1к6 колющий. Боеприпас (80/320), двуручное. Вес 2 фнт."
+  },
+  {
+    "category": "Оружие",
+    "name": "Праща",
+    "description": "Простое дальнобойное оружие. 1к4 дробящий. Боеприпас (30/120)."
+  },
+  {
+    "category": "Оружие",
+    "name": "Алебарда",
+    "description": "Воинское рукопашное оружие. 1к10 рубящий. Двуручное, досягаемость, тяжёлое. Вес 6 фнт."
+  },
+  {
+    "category": "Оружие",
+    "name": "Боевая кирка",
+    "description": "Воинское рукопашное оружие. 1к8 колющий. Вес 2 фнт."
+  },
+  {
+    "category": "Оружие",
+    "name": "Боевой молот",
+    "description": "Воинское рукопашное оружие. 1к8 дробящий. Универсальное (1к10). Вес 2 фнт."
+  },
+  {
+    "category": "Оружие",
+    "name": "Боевой топор",
+    "description": "Воинское рукопашное оружие. 1к8 рубящий. Универсальное (1к10). Вес 4 фнт."
+  },
+  {
+    "category": "Оружие",
+    "name": "Глефа",
+    "description": "Воинское рукопашное оружие. 1к10 рубящий. Двуручное, досягаемость, тяжёлое. Вес 6 фнт."
+  },
+  {
+    "category": "Оружие",
+    "name": "Двуручный меч",
+    "description": "Воинское рукопашное оружие. 2к6 рубящий. Двуручное, тяжёлое. Вес 6 фнт."
+  },
+  {
+    "category": "Оружие",
+    "name": "Длинное копьё",
+    "description": "Воинское рукопашное оружие. 1к12 колющий. Досягаемость, особое. Вес 6 фнт."
+  },
+  {
+    "category": "Оружие",
+    "name": "Длинный меч",
+    "description": "Воинское рукопашное оружие. 1к8 рубящий. Универсальное (1к10). Вес 3 фнт."
+  },
+  {
+    "category": "Оружие",
+    "name": "Кнут",
+    "description": "Воинское рукопашное оружие. 1к4 рубящий. Досягаемость, фехтовальное. Вес 3 фнт."
+  },
+  {
+    "category": "Оружие",
+    "name": "Короткий меч",
+    "description": "Воинское рукопашное оружие. 1к6 колющий. Лёгкое, фехтовальное. Вес 2 фнт."
+  },
+  {
+    "category": "Оружие",
+    "name": "Молот",
+    "description": "Воинское рукопашное оружие. 2к6 дробящий. Двуручное, тяжёлое. Вес 10 фнт."
+  },
+  {
+    "category": "Оружие",
+    "name": "Моргенштерн",
+    "description": "Воинское рукопашное оружие. 1к8 колющий. Вес 4 фнт."
+  },
+  {
+    "category": "Оружие",
+    "name": "Пика",
+    "description": "Воинское рукопашное оружие. 1к10 колющий. Двуручное, досягаемость, тяжёлое. Вес 18 фнт."
+  },
+  {
+    "category": "Оружие",
+    "name": "Рапира",
+    "description": "Воинское рукопашное оружие. 1к8 колющий. Фехтовальное. Вес 2 фнт."
+  },
+  {
+    "category": "Оружие",
+    "name": "Секира",
+    "description": "Воинское рукопашное оружие. 1к12 рубящий. Двуручное, тяжёлое. Вес 7 фнт."
+  },
+  {
+    "category": "Оружие",
+    "name": "Скимитар",
+    "description": "Воинское рукопашное оружие. 1к6 рубящий. Лёгкое, фехтовальное. Вес 3 фнт."
+  },
+  {
+    "category": "Оружие",
+    "name": "Трезубец",
+    "description": "Воинское рукопашное оружие. 1к6 колющий. Метательное (20/60), универсальное (1к8). Вес 4 фнт."
+  },
+  {
+    "category": "Оружие",
+    "name": "Цеп",
+    "description": "Воинское рукопашное оружие. 1к8 дробящий. Вес 2 фнт."
+  },
+  {
+    "category": "Оружие",
+    "name": "Арбалет, ручной",
+    "description": "Воинское дальнобойное оружие. 1к6 колющий. Боеприпас (30/120), лёгкое, перезарядка. Вес 3 фнт."
+  },
+  {
+    "category": "Оружие",
+    "name": "Арбалет, тяжёлый",
+    "description": "Воинское дальнобойное оружие. 1к10 колющий. Боеприпас (100/400), двуручное, перезарядка, тяжёлое. Вес 18 фнт."
+  },
+  {
+    "category": "Оружие",
+    "name": "Длинный лук",
+    "description": "Воинское дальнобойное оружие. 1к8 колющий. Боеприпас (150/600), двуручное, тяжёлое. Вес 2 фнт."
+  },
+  {
+    "category": "Оружие",
+    "name": "Духовая трубка",
+    "description": "Воинское дальнобойное оружие. 1 колющий. Боеприпас (25/100), перезарядка. Вес 1 фнт."
+  },
+  {
+    "category": "Оружие",
+    "name": "Сеть",
+    "description": "Воинское дальнобойное оружие. Особое. Метательное (5/15). Вес 3 фнт."
+  }
+]
