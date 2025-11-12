@@ -978,8 +978,18 @@ async def on_inventory_item(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await q.message.reply_text(
         card,
         parse_mode=constants.ParseMode.MARKDOWN,
-        disable_web_page_preview=True
+        disable_web_page_preview=True,
+        reply_markup=get_markup(update)
     )
+
+    # После показа карточки возвращаем основное меню
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text="↩️ Возврат в главное меню.",
+        reply_markup=default_keyboard(update.effective_user.id)
+    )
+    return ConversationHandler.END
+
 
 async def backup_inventory_to_github():
     """Коммитит inventory_data.json в репозиторий"""
