@@ -605,7 +605,8 @@ async def add_item_start(update, context):
         ["Магический предмет"],
         ["🔙 Назад"]
     ]
-    reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
+    reply_markup = default_keyboard(update.effective_user.id)
+
     await update.message.reply_text("Выбери категорию:", reply_markup=reply_markup)
     return STATE_ADD_CATEGORY
 
@@ -726,7 +727,8 @@ async def add_item_name(update, context):
         ["🗑 Удалить предмет", "📜 Категории"],
         ["🎲 Симулировать день", "❓ Помощь"]
     ]
-    reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
+    reply_markup = default_keyboard(update.effective_user.id)
+
 
     await update.message.reply_text(
         f"{msg}\n\nДобавлено в [{cat}]:\n\n{card}",
@@ -800,11 +802,14 @@ async def on_add_confirm_button(update: Update, context: ContextTypes.DEFAULT_TY
         await query.edit_message_text("🚫 Добавление отменено.")
 
         # Возврат в главное меню через bot.send_message
+        # В конце функции — возвращаем меню игрока
         await context.bot.send_message(
             chat_id=query.message.chat_id,
-            text="↩️ Возврат в главное меню.",
+            text="Главное меню:",
             reply_markup=default_keyboard(update.effective_user.id)
         )
+
+        
 
 
 def get_category_keyboard():
@@ -959,7 +964,16 @@ async def on_inventory_item(update: Update, context: ContextTypes.DEFAULT_TYPE):
     item_name = items[idx]
     cat = context.user_data["inv_cat"].replace("⚔ ", "").replace("🛡 ", "")
     full = enrich_item({"name": item_name, "category": cat}) or {"name": item_name}
+
+    # Если предмет кастомный (⭐ или содержит '—')
+    if "⭐" in item_name or "—" in item_name:
+        parts = item_name.split("—", 1)
+        name = parts[0].strip("⭐ ").strip()
+        desc = parts[1].strip() if len(parts) > 1 else "— пользовательское описание —"
+        full = {"name": name, "description": desc, "category": cat}
+
     card = render_item_card(full)
+
 
     await q.message.reply_text(
         card,
@@ -979,6 +993,16 @@ async def backup_inventory_to_github():
         print(f"✅ GitHub backup done at {ts}")
     except Exception as e:
         print(f"⚠️ Backup error: {e}")
+
+# === Универсальный выбор меню ===
+def get_markup(update):
+    """Возвращает меню в зависимости от роли пользователя"""
+    try:
+        return default_keyboard(update.effective_user.id)
+    except Exception:
+        # fallback, если что-то не так с update
+        return default_keyboard(None)
+
 
 # =======================
 #     МАСТЕР-ИНВЕНТАРЬ
