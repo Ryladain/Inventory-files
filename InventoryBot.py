@@ -475,6 +475,9 @@ async def send_remove_page(update: Update, context: ContextTypes.DEFAULT_TYPE):
         nav.append(InlineKeyboardButton("➡️", callback_data="pg_next"))
     if nav:
         buttons.append(nav)
+    # добавь после блока nav
+    if not nav:
+        buttons.append([InlineKeyboardButton("🔙 Назад", callback_data="pg_exit")])
 
     markup = InlineKeyboardMarkup(buttons)
     text = f"🗑️ *{cat}* — страница {page+1}/{(len(items)-1)//per_page+1}\nВыбери предмет для удаления:"
@@ -492,7 +495,14 @@ async def on_remove_nav(update: Update, context: ContextTypes.DEFAULT_TYPE):
         context.user_data["page"] += 1
     elif q.data == "pg_exit":
         await q.edit_message_text("↩️ Возврат в главное меню.")
-        return await end_and_main_menu(update, context)
+        context.user_data.clear()
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text="Главное меню:",
+            reply_markup=home_kb(update, context)
+        )
+        return ConversationHandler.END
+
 
     await send_remove_page(update, context)
 
@@ -516,10 +526,20 @@ async def on_remove_click(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await notify_master(context.bot, update.effective_user.first_name, f"удалил предмет: [{cat}] {item}")
 
     await q.edit_message_text(f"❌ Удалено: [{cat}] {item}")
-    return await end_and_main_menu(update, context)
 
+    # полностью очищаем разговор и возвращаем корректное меню
+    context.user_data.clear()
+    try:
+        await q.message.delete_reply_markup()  # убираем старые инлайн-кнопки (чтобы не ловили клики)
+    except Exception:
+        pass
 
-
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text="↩️ Возврат в главное меню.",
+        reply_markup=home_kb(update, context)
+    )
+    return ConversationHandler.END
 
 
 # --------- Симуляция ---------
