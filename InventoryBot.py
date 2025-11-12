@@ -27,27 +27,11 @@ from telegram.ext import (
 
 BACK_RE = r"^(?:🔙\s*)?Назад$"
 
-async def end_and_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE, text: str = "↩️ Возврат в главное меню."):
-    chat_id = update.effective_chat.id if update.effective_chat else update.callback_query.message.chat_id
-    # подчистим залипающие ключи состояний
-    for k in ("inv_cat","inv_page","inv_items","remove_cat","page","items","add_cat","pending_item","pending_desc","raw_name"):
-        context.user_data.pop(k, None)
-    await context.bot.send_message(chat_id=chat_id, text=text, reply_markup=keyboard_for(update, context))
-    return ConversationHandler.END
 
 async def on_any_back(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return await end_and_main_menu(update, context)
 
 from telegram.ext import ConversationHandler
-
-async def end_and_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE, text: str = "↩️ Возврат в главное меню."):
-    """Корректно завершает любой Conversation и показывает актуальное меню."""
-    chat_id = update.effective_chat.id if update.effective_chat else update.callback_query.message.chat_id
-    # подчистим временный контекст, чтобы не залипать в состояниях
-    for k in ("inv_cat","inv_page","inv_items","remove_cat","page","items","add_cat","pending_item","pending_desc","raw_name"):
-        context.user_data.pop(k, None)
-    await context.bot.send_message(chat_id=chat_id, text=text, reply_markup=keyboard_for(update, context))
-    return ConversationHandler.END
 
 
 # === библиотека предметов ===
@@ -265,6 +249,18 @@ async def go_home(update, context, text="↩️ Возврат в главное
     else:
         await update.message.reply_text(text, reply_markup=home_kb(update, context))
 
+def keyboard_for(update, context):
+    # чтобы старые вызовы keyboard_for не падали
+    return home_kb(update, context)
+
+async def end_and_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE, text: str = "↩️ Возврат в главное меню."):
+    """Корректно завершает любой Conversation и показывает актуальное меню."""
+    chat_id = update.effective_chat.id if update.effective_chat else update.callback_query.message.chat_id
+    for k in ("inv_cat","inv_page","inv_items","remove_cat","page","items","add_cat","pending_item","pending_desc","raw_name","pending"):
+        context.user_data.pop(k, None)
+    await context.bot.send_message(chat_id=chat_id, text=text, reply_markup=home_kb(update, context))
+    return ConversationHandler.END
+
 
 # --------- Команды ---------
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -413,12 +409,14 @@ async def on_inventory_item(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if user_desc and not full.get("description"):
         full["description"] = user_desc
 
+    card = render_item_card(full)  # ← ЭТОГО НЕ ХВАТАЛО
+
     await q.message.reply_text(
         card,
         parse_mode=constants.ParseMode.MARKDOWN,
         disable_web_page_preview=True
     )
-    return await end_and_main_menu(update, context)   # ← вместо ConversationHandler.END
+    return await end_and_main_menu(update, context)
 
 
 
@@ -495,6 +493,7 @@ async def on_remove_nav(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif q.data == "pg_exit":
         await q.edit_message_text("↩️ Возврат в главное меню.")
         return await end_and_main_menu(update, context)
+
     await send_remove_page(update, context)
 
 async def on_remove_click(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -517,7 +516,8 @@ async def on_remove_click(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await notify_master(context.bot, update.effective_user.first_name, f"удалил предмет: [{cat}] {item}")
 
     await q.edit_message_text(f"❌ Удалено: [{cat}] {item}")
-    return await end_and_main_menu(update, context)   # ← ВАЖНО
+    return await end_and_main_menu(update, context)
+
 
 
 
@@ -694,16 +694,23 @@ async def on_add_confirm_button(update: Update, context: ContextTypes.DEFAULT_TY
     q = update.callback_query
     await q.answer()
     data = q.data
+
     pend = context.user_data.get("pending") or {}
     uid  = pend.get("uid", update.effective_user.id)
     cat  = pend.get("cat")
-    name = pend.get("name")
-    user_desc = pend.get("desc")
+    found_name = pend.get("name")
+    user_desc  = pend.get("desc")
 
-# внутри on_add_confirm_button:
+    inv = get_inventory(uid)
 
+    # ✅ подтвердили библиотечный предмет
     if data == "confirm_yes" and found_name:
-        ...
+        inv[cat].append(found_name)
+        save_inventory(uid, inv)
+
+        found_item = enrich_item({"name": found_name, "category": cat}) or {}
+        desc = (found_item.get("description") or "— нет описания —").strip()
+
         await q.edit_message_text(
             f"✅ Добавлено в {cat}:\n\n*{found_name}*\n\n{desc}",
             parse_mode=constants.ParseMode.MARKDOWN,
@@ -711,21 +718,37 @@ async def on_add_confirm_button(update: Update, context: ContextTypes.DEFAULT_TY
         )
         return await end_and_main_menu(update, context)
 
+    # ❌ «нет, это не он» → спросим, сохранить как кастом
     if data == "confirm_no":
-        ...
-        return  # ждём следующий колбэк
+        kb = InlineKeyboardMarkup([
+            [InlineKeyboardButton("✅ Да", callback_data="add_custom_yes"),
+             InlineKeyboardButton("❌ Нет", callback_data="add_custom_no")]
+        ])
+        await q.edit_message_text("⚙️ Не найдено в библиотеке.\nДобавить как пользовательский предмет?", reply_markup=kb)
+        return  # ждём следующее нажатие
 
+    # ✅ добавить как кастом
     if data == "add_custom_yes":
-        ...
+        raw = context.user_data.get("raw_name", found_name or "Неизвестный предмет")
+        if ":" in raw:
+            base_name, desc = [x.strip() for x in raw.split(":", 1)]
+        else:
+            base_name, desc = raw.strip(), (user_desc or "— пользовательское описание —")
+
+        inv[cat].append(f"⭐ {base_name} — {desc}")
+        save_inventory(uid, inv)
+
         await q.edit_message_text(
-            f"Добавлено в {cat}:\n\n*{name}*\n\n{desc}",
+            f"Добавлено в {cat}:\n\n*{base_name}*\n\n{desc}",
             parse_mode=constants.ParseMode.MARKDOWN
         )
         return await end_and_main_menu(update, context)
 
+    # 🚫 отменили кастом
     if data == "add_custom_no":
         await q.edit_message_text("🚫 Добавление отменено.")
         return await end_and_main_menu(update, context)
+
 
 
 
@@ -741,8 +764,9 @@ async def show_master_inventory(update: Update, context: ContextTypes.DEFAULT_TY
 async def master_select_player(update: Update, context: ContextTypes.DEFAULT_TYPE):
     name = update.message.text.strip()
     if "назад" in name.lower():
-        await update.message.reply_text("↩️ Возврат в главное меню.", reply_markup=default_keyboard(MASTER_ID))
+        await update.message.reply_text("↩️ Возврат в главное меню.", reply_markup=home_kb(update, context))
         return ConversationHandler.END
+
 
     if name not in PLAYERS:
         await update.message.reply_text("⚠️ Неизвестный игрок.")
