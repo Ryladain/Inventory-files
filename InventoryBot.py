@@ -527,19 +527,38 @@ async def on_remove_click(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await q.edit_message_text(f"❌ Удалено: [{cat}] {item}")
 
-    # полностью очищаем разговор и возвращаем корректное меню
+    # Очищаем контекст
     context.user_data.clear()
-    try:
-        await q.message.delete_reply_markup()  # убираем старые инлайн-кнопки (чтобы не ловили клики)
-    except Exception:
-        pass
 
-    await context.bot.send_message(
-        chat_id=update.effective_chat.id,
-        text="↩️ Возврат в главное меню.",
-        reply_markup=home_kb(update, context)
-    )
+    uid = update.effective_user.id
+    chat_id = update.effective_chat.id
+
+    # 🧙‍♂️ Если мастер — возвращаем в мастер-меню
+    if uid == MASTER_ID:
+        if context.user_data.get("target_id"):
+            # Мастер управляет игроком — возвращаем меню управления
+            await context.bot.send_message(
+                chat_id=chat_id,
+                text="↩️ Возврат в меню управления игроком.",
+                reply_markup=home_kb(update, context)
+            )
+        else:
+            # Мастер в своём меню
+            await context.bot.send_message(
+                chat_id=chat_id,
+                text="↩️ Возврат в мастер-инвентарь.",
+                reply_markup=_kb_master_root()
+            )
+    else:
+        # 🎲 Обычный игрок — возвращаем его личное меню
+        await context.bot.send_message(
+            chat_id=chat_id,
+            text="↩️ Возврат в главное меню.",
+            reply_markup=home_kb(update, context)
+        )
+
     return ConversationHandler.END
+
 
 
 # --------- Симуляция ---------
