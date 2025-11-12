@@ -970,7 +970,7 @@ async def on_inventory_nav(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     await send_inventory_page(update, context)
 
-aasync def on_inventory_item(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def on_inventory_item(update: Update, context: ContextTypes.DEFAULT_TYPE):
     q = update.callback_query
     await q.answer()
 
