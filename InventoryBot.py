@@ -3,6 +3,7 @@ import random
 import re
 import asyncio
 import unicodedata
+import subprocess, datetime
 from rapidfuzz import fuzz, process
 from pathlib import Path
 from telegram.ext import CallbackQueryHandler
@@ -949,6 +950,18 @@ async def on_inventory_item(update: Update, context: ContextTypes.DEFAULT_TYPE):
         disable_web_page_preview=True
     )
 
+async def backup_inventory_to_github():
+    """Коммитит inventory_data.json в репозиторий"""
+    ts = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    try:
+        subprocess.run(["git", "config", "--global", "user.email", os.getenv("GITHUB_EMAIL")], check=True)
+        subprocess.run(["git", "config", "--global", "user.name", os.getenv("GITHUB_NAME")], check=True)
+        subprocess.run(["git", "add", "inventory_data.json"], check=True)
+        subprocess.run(["git", "commit", "-m", f"auto backup {ts}"], check=False)
+        subprocess.run(["git", "push", f"https://{os.getenv('GITHUB_TOKEN')}@github.com/{os.getenv('GITHUB_REPO')}.git", "HEAD:main"], check=False)
+        print(f"✅ GitHub backup done at {ts}")
+    except Exception as e:
+        print(f"⚠️ Backup error: {e}")
 
 
     
@@ -1026,7 +1039,11 @@ def main():
     app.add_handler(MessageHandler(filters.Regex("^📚 Категории$"), categories))
     app.add_handler(MessageHandler(filters.Regex("^❓ Помощь$"), help_cmd))
     app.add_handler(CallbackQueryHandler(on_add_confirm_button, pattern="^(confirm_|add_custom_)"))
+    from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
+    scheduler = AsyncIOScheduler()
+    scheduler.add_job(backup_inventory_to_github, "interval", hours=24)
+    scheduler.start()
 
     print("✅ Бот запущен!")
     app.run_polling()
