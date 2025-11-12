@@ -737,7 +737,11 @@ async def add_item_name(update, context):
                 disable_web_page_preview=True,
                 reply_markup=keyboard,
             )
-            return ConversationHandler.END
+
+# Не завершаем диалог — ждём ответа пользователя
+context.user_data["pending_item"] = (cat, found_name)
+return STATE_ADD_CONFIRM
+
 
 
 
@@ -751,12 +755,14 @@ async def add_item_name(update, context):
     else:
         msg = f"✅ Найден предмет: *{found['name']}*"
 
-    # Добавляем в инвентарь
-    item_entry = f"{found['name']}"
-    if desc:
-        item_entry += f" — {desc}"
-    inv[cat].append(item_entry)
+    # Добавляем в инвентарь как объект с описанием
+    entry = {
+        "name": found["name"],
+        "description": desc or found.get("description", "— нет описания —"),
+    }
+    inv[cat].append(entry)
     save_inventory(uid, inv)
+
 
     # 🔔 Уведомление мастеру о добавлении
     action = f"добавил предмет: [{cat}] {name}"
@@ -1205,6 +1211,7 @@ async def run_bot():
     states={
         STATE_ADD_CATEGORY: [MessageHandler(filters.TEXT & ~filters.COMMAND, add_item_category)],
         STATE_ADD_NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, add_item_name)],
+        STATE_ADD_CONFIRM: [CallbackQueryHandler(on_add_confirm_button, pattern="^(confirm_|add_custom_)")],
     },
     fallbacks=[CommandHandler("cancel", on_remove_cancel)],
     )
