@@ -608,6 +608,20 @@ async def finalize_add(update, context, found, cat):
 
 
 async def add_item_start(update, context):
+    """Открывает меню категорий для добавления предмета.
+    Если мастер управляет игроком — категория добавляется игроку.
+    """
+
+    # Проверяем контекст
+    if update.effective_user.id == MASTER_ID and "target_id" not in context.user_data:
+        # Мастер не выбрал игрока — возвращаем в меню выбора
+        await update.message.reply_text(
+            "⚠️ Сначала выбери игрока в 'Мастер-инвентаре'.",
+            reply_markup=default_keyboard(MASTER_ID)
+        )
+        return ConversationHandler.END
+
+    # Обычное меню категорий
     keyboard = [
         ["Одежда", "Снаряжение"],
         ["Наборы снаряжения", "Инструменты"],
@@ -615,10 +629,21 @@ async def add_item_start(update, context):
         ["Магический предмет"],
         ["🔙 Назад"]
     ]
-    reply_markup = default_keyboard(update.effective_user.id)
+    reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
 
-    await update.message.reply_text("Выбери категорию:", reply_markup=reply_markup)
+    # Текст в зависимости от того, кто добавляет
+    if update.effective_user.id == MASTER_ID:
+        target_name = context.user_data.get("target_name", "неизвестный игрок")
+        await update.message.reply_text(
+            f"📜 Добавление предмета в инвентарь игрока *{target_name}*.\nВыбери категорию:",
+            parse_mode="Markdown",
+            reply_markup=reply_markup
+        )
+    else:
+        await update.message.reply_text("Выбери категорию:", reply_markup=reply_markup)
+
     return STATE_ADD_CATEGORY
+
 
 
 async def add_item_category(update, context):
