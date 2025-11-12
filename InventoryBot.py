@@ -423,6 +423,16 @@ async def on_remove_click(update: Update, context: ContextTypes.DEFAULT_TYPE):
     inv[cat].remove(item)
     save_inventory(uid, inv)
 
+    # Если мастер удаляет предмет у игрока — возвращаемся в меню, не пытаемся листать
+    if update.effective_user.id == MASTER_ID:
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text="✅ Предмет удалён. Возврат в главное меню.",
+            reply_markup=default_keyboard(MASTER_ID)
+    )
+    return ConversationHandler.END
+
+
     # 🔔 Уведомление мастеру об удалении
     action = f"удалил предмет: [{cat}] {item}"
     await notify_master(context.bot, update.effective_user.first_name, action)
