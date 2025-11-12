@@ -498,7 +498,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 from telegram import ReplyKeyboardMarkup
 
-def default_keyboard(update.effective_user.id):
+def default_keyboard(user_id=None):
     return ReplyKeyboardMarkup(
         [
             ["➕ Добавить предмет", "➖ Удалить предмет"],
