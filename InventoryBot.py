@@ -698,25 +698,41 @@ def norm(s):
 
 def find_closest_item(name: str, category: str | None = None):
     query = norm(name)
-    cat = norm(category or "")
+    cat_norm = norm(category or "")
 
-    # 1) ищем сначала в своей категории (если она есть)
-    pool_cat = [i for i in (MAGIC + NONMAGIC) if norm(i.get("category")) == cat]
+    # объединяем обе библиотеки
+    catalog = NONMAGIC + MAGIC
 
-    if pool_cat:
-        names = [norm(i.get("name")) for i in pool_cat]
-        best = process.extractOne(query, names, scorer=fuzz.WRatio)
-        if best and best[1] >= 60:
-            best_name = best[0]
-            return next(i for i in pool_cat if norm(i.get("name")) == best_name)
+    # -----------------------------
+    # 1) Ищем предметы, где категория ТАК ЖЕ звучит, как в ITEMS
+    # -----------------------------
+    pool_cat = [i for i in catalog if norm(i.get("category", "")) == cat_norm]
 
-    # 2) ищем во ВСЁЙ библиотеке, если в категории не нашли
-    pool_all = MAGIC + NONMAGIC
-    names = [norm(i.get("name")) for i in pool_all]
+    # -----------------------------
+    # 2) Если пусто — ищем категории ПОХОЖИЕ на "Оружие"
+    #    Например: "weapon", "melee weapon", "martial weapon"
+    # -----------------------------
+    if not pool_cat:
+        for i in catalog:
+            lib_cat = norm(i.get("category", ""))
+            if fuzz.WRatio(cat_norm, lib_cat) >= 70:   # категория похожа
+                pool_cat.append(i)
+
+    # -----------------------------
+    # 3) Если всё ещё пусто — ищем по всей библиотеке
+    # -----------------------------
+    if not pool_cat:
+        pool_cat = catalog
+
+    # -----------------------------
+    # 4) Теперь ищем предмет по названию
+    # -----------------------------
+    names = [norm(i.get("name", "")) for i in pool_cat]
     best = process.extractOne(query, names, scorer=fuzz.WRatio)
+
     if best and best[1] >= 60:
         best_name = best[0]
-        return next(i for i in pool_all if norm(i.get("name")) == best_name)
+        return next(i for i in pool_cat if norm(i.get("name")) == best_name)
 
     return None
 
