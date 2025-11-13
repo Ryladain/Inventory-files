@@ -698,43 +698,35 @@ def norm(s):
 
 def find_closest_item(name: str, category: str | None = None):
     query = norm(name)
-    cat_norm = norm(category or "")
+    cat_query = norm(category or "")
 
-    # объединяем обе библиотеки
-    catalog = NONMAGIC + MAGIC
+    # выбираем библиотеку
+    base_lib = MAGIC if "маг" in cat_query else NONMAGIC
 
-    # -----------------------------
-    # 1) Ищем предметы, где категория ТАК ЖЕ звучит, как в ITEMS
-    # -----------------------------
-    pool_cat = [i for i in catalog if norm(i.get("category", "")) == cat_norm]
+    # 👉 мягкий поиск категории (а не строгое сравнение!)
+    pool = []
+    for it in base_lib:
+        lib_cat = norm(it.get("category", ""))
+        # если категория похожа хотя бы на 50%
+        if fuzz.WRatio(cat_query, lib_cat) >= 50:
+            pool.append(it)
 
-    # -----------------------------
-    # 2) Если пусто — ищем категории ПОХОЖИЕ на "Оружие"
-    #    Например: "weapon", "melee weapon", "martial weapon"
-    # -----------------------------
-    if not pool_cat:
-        for i in catalog:
-            lib_cat = norm(i.get("category", ""))
-            if fuzz.WRatio(cat_norm, lib_cat) >= 70:   # категория похожа
-                pool_cat.append(i)
+    # если так ничего не нашли → берём всю библиотеку
+    if not pool:
+        pool = base_lib
 
-    # -----------------------------
-    # 3) Если всё ещё пусто — ищем по всей библиотеке
-    # -----------------------------
-    if not pool_cat:
-        pool_cat = catalog
+    # список имён
+    names = [norm(i["name"]) for i in pool]
 
-    # -----------------------------
-    # 4) Теперь ищем предмет по названию
-    # -----------------------------
-    names = [norm(i.get("name", "")) for i in pool_cat]
     best = process.extractOne(query, names, scorer=fuzz.WRatio)
 
+    # принимаем совпадения от 60%
     if best and best[1] >= 60:
         best_name = best[0]
-        return next(i for i in pool_cat if norm(i.get("name")) == best_name)
+        return next(i for i in pool if norm(i["name"]) == best_name)
 
     return None
+
 
 
 async def add_item_start(update, context):
