@@ -698,15 +698,17 @@ def norm(s):
 
 def find_closest_item(name: str, category: str | None = None):
     """
-    Поиск предмета без привязки к категориям:
-    - сначала точное совпадение по имени внутри нужной библиотеки (MAGIC / NONMAGIC),
-    - если не нашли — fuzzy-поиск по имени в той же библиотеке.
+    Поиск предмета:
+    1) точное совпадение по имени (регистр не важен),
+    2) contains / подстрока,
+    3) fuzzy-поиск (rapidfuzz) с невысоким порогом.
     """
 
     query = norm(name)
+    if not query:
+        return None
 
-    # выбираем, в какой библиотеке искать
-    # магические предметы ищем в MAGIC, остальные — в NONMAGIC
+    # магические → MAGIC, остальные → NONMAGIC
     if "маг" in norm(category or ""):
         base = MAGIC
     else:
@@ -715,12 +717,24 @@ def find_closest_item(name: str, category: str | None = None):
     if not base:
         return None
 
-    # 1) пробуем найти точное совпадение по имени (игнорируем категорию)
+    # --- 1. Точное совпадение ---
     for it in base:
-        if norm(it.get("name")) == query:
+        nm = norm(it.get("name"))
+        if nm == query:
             return it
 
-    # 2) если точного совпадения нет — fuzzy-поиск по имени
+    # --- 2. Подстрока (contains) ---
+    substring_matches = [
+        it for it in base
+        if query in norm(it.get("name", "")) or norm(it.get("name", "")) in query
+    ]
+    if len(substring_matches) == 1:
+        return substring_matches[0]
+    elif len(substring_matches) > 1:
+        # возьмём самый короткий вариант, чтобы отсечь "лишние" названия
+        return min(substring_matches, key=lambda it: len(norm(it.get("name", ""))))
+
+    # --- 3. Fuzzy-поиск ---
     names = [norm(i.get("name")) for i in base if i.get("name")]
     if not names:
         return None
@@ -730,7 +744,8 @@ def find_closest_item(name: str, category: str | None = None):
         return None
 
     best_name, score, _ = best
-    if score < 60:
+    # порог пониже, чтобы почти всегда что-то находить
+    if score < 40:
         return None
 
     for it in base:
@@ -738,7 +753,6 @@ def find_closest_item(name: str, category: str | None = None):
             return it
 
     return None
-
 
 
 
