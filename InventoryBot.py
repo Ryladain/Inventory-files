@@ -698,37 +698,33 @@ def norm(s):
 
 def find_closest_item(name: str, category: str | None = None):
     """
-    1) Сначала ищем ТОЧНОЕ совпадение по имени + категории.
-    2) Если нет — ищем ближайшее по fuzzy-поиску внутри нужной категории.
+    Поиск предмета без привязки к категориям:
+    - сначала точное совпадение по имени внутри нужной библиотеки (MAGIC / NONMAGIC),
+    - если не нашли — fuzzy-поиск по имени в той же библиотеке.
     """
+
     query = norm(name)
-    cat_norm = norm(category or "")
 
-    # Определяем, в какой библиотеке искать
-    # Магические предметы — в MAGIC, остальное — в NONMAGIC
-    if cat_norm == norm("Магический предмет"):
-        libs = [MAGIC]
+    # выбираем, в какой библиотеке искать
+    # магические предметы ищем в MAGIC, остальные — в NONMAGIC
+    if "маг" in norm(category or ""):
+        base = MAGIC
     else:
-        libs = [NONMAGIC]
+        base = NONMAGIC
 
-    # --- Шаг 1. Точный матч имя+категория ---
-    for lib in libs:
-        for it in lib:
-            if norm(it.get("category")) == cat_norm and norm(it.get("name")) == query:
-                return it
-
-    # --- Шаг 2. Fuzzy-поиск внутри категории ---
-    base = libs[0] if libs else []
     if not base:
         return None
 
-    # Сужаем пул по категории, но если вдруг пусто — берём весь список
-    pool = [i for i in base if norm(i.get("category")) == cat_norm] or base
+    # 1) пробуем найти точное совпадение по имени (игнорируем категорию)
+    for it in base:
+        if norm(it.get("name")) == query:
+            return it
 
-    if not pool:
+    # 2) если точного совпадения нет — fuzzy-поиск по имени
+    names = [norm(i.get("name")) for i in base if i.get("name")]
+    if not names:
         return None
 
-    names = [norm(i.get("name")) for i in pool if i.get("name")]
     best = process.extractOne(query, names, scorer=fuzz.WRatio)
     if not best:
         return None
@@ -737,11 +733,12 @@ def find_closest_item(name: str, category: str | None = None):
     if score < 60:
         return None
 
-    for it in pool:
+    for it in base:
         if norm(it.get("name")) == best_name:
             return it
 
     return None
+
 
 
 
