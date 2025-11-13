@@ -351,8 +351,9 @@ async def show_inventory(update, context):
         for i, entry in enumerate(lst, 1):
             name, desc = parse_item_entry(entry)
             if not desc:
-                lib = enrich_item({"name": name, "category": cat}) or {}
+                lib = get_library_item(name, cat) or {}
                 desc = (lib.get("description") or "").strip() or None
+
             blocks.append(f"{i}. {esc(name)}")
             if desc:
                 short = desc if len(desc) <= 1000 else (desc[:1000] + "…")
@@ -476,12 +477,10 @@ async def on_inventory_item(update: Update, context: ContextTypes.DEFAULT_TYPE):
     cat = context.user_data["inv_cat"]
     name, user_desc = parse_item_entry(entry)
 
-    full = enrich_item({"name": name, "category": cat}) or {
-        "name": name,
-        "category": cat,
-    }
+    full = get_library_item(name, cat) or {"name": name, "category": cat}
     if user_desc and not full.get("description"):
         full["description"] = user_desc
+
 
     card = render_item_card(full)
 
@@ -755,6 +754,27 @@ def find_closest_item(name: str, category: str | None = None):
     return None
 
 
+def get_library_item(name: str, category: str | None = None):
+    """
+    Возвращает предмет из библиотеки с максимально полной инфой.
+    1) пробуем enrich_item (старый путь),
+    2) если не вышло — используем find_closest_item и берём там description.
+    """
+    # сначала как раньше
+    lib = enrich_item({"name": name, "category": category}) or None
+    if lib and lib.get("description"):
+        return lib
+
+    # затем fuzzy-поиск по глобальным спискам
+    closest = find_closest_item(name, category)
+    if closest:
+        res = dict(closest)
+        # на всякий случай подставим категорию, если её нет
+        if category and not res.get("category"):
+            res["category"] = category
+        return res
+
+    return lib or closest
 
 
 async def add_item_start(update, context):
@@ -810,6 +830,12 @@ async def add_item_name(update, context):
     cat = context.user_data.get("add_cat")
 
     raw_text = (update.message.text or "").strip()
+
+    # === НОВОЕ: обрабатываем "Назад" как выход, а не как имя предмета ===
+    # Совпадает с паттерном BACK_RE: "Назад" или "🔙 Назад"
+    if re.fullmatch(BACK_RE, raw_text):
+        return await end_and_main_menu(update, context)
+
     context.user_data["raw_name"] = raw_text
     if ":" in raw_text:
         name, user_desc = [x.strip() for x in raw_text.split(":", 1)]
@@ -819,7 +845,6 @@ async def add_item_name(update, context):
     # === 1. Пытаемся найти предмет через библиотеку (enrich_item) ===
     lib_item = enrich_item({"name": name, "category": cat})
     if lib_item:
-        # нашли канонический предмет в каталоге
         found_name = lib_item.get("name", name)
         context.user_data["pending"] = {
             "uid": uid,
@@ -902,6 +927,7 @@ async def add_item_name(update, context):
         disable_web_page_preview=True,
     )
     return await end_and_main_menu(update, context)
+
 
 
 async def on_add_confirm_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -1178,4 +1204,5 @@ if __name__ == "__main__":
 
     nest_asyncio.apply()
     asyncio.run(run_bot())
+
 
