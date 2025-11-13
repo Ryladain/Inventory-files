@@ -697,35 +697,52 @@ def norm(s):
 
 
 def find_closest_item(name: str, category: str | None = None):
+    """
+    1) Сначала ищем ТОЧНОЕ совпадение по имени + категории.
+    2) Если нет — ищем ближайшее по fuzzy-поиску внутри нужной категории.
+    """
     query = norm(name)
-    cat_query = norm(category or "")
+    cat_norm = norm(category or "")
 
-    # выбираем библиотеку
-    base_lib = MAGIC if "маг" in cat_query else NONMAGIC
+    # Определяем, в какой библиотеке искать
+    # Магические предметы — в MAGIC, остальное — в NONMAGIC
+    if cat_norm == norm("Магический предмет"):
+        libs = [MAGIC]
+    else:
+        libs = [NONMAGIC]
 
-    # 👉 мягкий поиск категории (а не строгое сравнение!)
-    pool = []
-    for it in base_lib:
-        lib_cat = norm(it.get("category", ""))
-        # если категория похожа хотя бы на 50%
-        if fuzz.WRatio(cat_query, lib_cat) >= 50:
-            pool.append(it)
+    # --- Шаг 1. Точный матч имя+категория ---
+    for lib in libs:
+        for it in lib:
+            if norm(it.get("category")) == cat_norm and norm(it.get("name")) == query:
+                return it
 
-    # если так ничего не нашли → берём всю библиотеку
+    # --- Шаг 2. Fuzzy-поиск внутри категории ---
+    base = libs[0] if libs else []
+    if not base:
+        return None
+
+    # Сужаем пул по категории, но если вдруг пусто — берём весь список
+    pool = [i for i in base if norm(i.get("category")) == cat_norm] or base
+
     if not pool:
-        pool = base_lib
+        return None
 
-    # список имён
-    names = [norm(i["name"]) for i in pool]
-
+    names = [norm(i.get("name")) for i in pool if i.get("name")]
     best = process.extractOne(query, names, scorer=fuzz.WRatio)
+    if not best:
+        return None
 
-    # принимаем совпадения от 60%
-    if best and best[1] >= 60:
-        best_name = best[0]
-        return next(i for i in pool if norm(i["name"]) == best_name)
+    best_name, score, _ = best
+    if score < 60:
+        return None
+
+    for it in pool:
+        if norm(it.get("name")) == best_name:
+            return it
 
     return None
+
 
 
 
