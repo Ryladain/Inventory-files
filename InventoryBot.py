@@ -12,7 +12,8 @@ from rapidfuzz import fuzz, process
 from telegram import (
     Update,
     InlineKeyboardMarkup, InlineKeyboardButton,
-    ReplyKeyboardMarkup, ReplyKeyboardRemove,
+    ReplyKeyboardMarkup,
+    ReplyKeyboardRemove,
     constants,
 )
 from telegram.ext import (
@@ -25,14 +26,9 @@ from telegram.ext import (
     filters,
 )
 
+# ---------- Общие константы ----------
+
 BACK_RE = r"^(?:🔙\s*)?Назад$"
-
-
-async def on_any_back(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    return await end_and_main_menu(update, context)
-
-from telegram.ext import ConversationHandler
-
 
 # === библиотека предметов ===
 from item_catalog import init_catalogs, enrich_item, render_item_card, MAGIC, NONMAGIC
@@ -120,8 +116,10 @@ def _load_all():
         return json.loads(DATA_FILE.read_text(encoding="utf-8"))
     return {}
 
+
 def _save_all(data):
     DATA_FILE.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+
 
 def get_inventory(user_id: int):
     data = _load_all()
@@ -129,6 +127,7 @@ def get_inventory(user_id: int):
     for cat in ITEMS.keys():
         inv.setdefault(cat, [])
     return inv
+
 
 def save_inventory(user_id: int, inv: dict):
     data = _load_all()
@@ -145,8 +144,10 @@ def _choose_category_by_d20(roll: int) -> str:
             return CATEGORIES_D20[k]
     return "Снаряжение"
 
+
 def _random_item(category: str) -> str:
     return random.choice(ITEMS[category])
+
 
 def _magic_rarity():
     r = random.randint(1, 100)
@@ -154,6 +155,7 @@ def _magic_rarity():
         if r <= threshold:
             return rarity, r
     return "обычный", r
+
 
 def _lose_item(inv: dict):
     while True:
@@ -163,6 +165,7 @@ def _lose_item(inv: dict):
             lost = random.choice(inv[cat])
             inv[cat].remove(lost)
             return cat, lost, r
+
 
 def _find_item(inv: dict):
     r = random.randint(1, 20)
@@ -205,9 +208,11 @@ def parse_item_entry(entry):
         return nm.strip().lstrip("⭐ ").strip(), ds.strip()
     return s.strip().lstrip("⭐ ").strip(), None
 
+
 def make_custom_string(name: str, desc: str | None):
     desc = (desc or "— пользовательское описание —").strip()
     return f"⭐ {name.strip()} — {desc}"
+
 
 def normalize_text(s: str) -> str:
     return (s or "").strip().lower()
@@ -216,6 +221,7 @@ def normalize_text(s: str) -> str:
 # ---------- Ролевые клавиатуры и возврат ----------
 def _kb_master_root():
     return ReplyKeyboardMarkup([["📜 Мастер-инвентарь"]], resize_keyboard=True)
+
 
 def _kb_player_base(with_sim=False):
     rows = [
@@ -227,8 +233,10 @@ def _kb_player_base(with_sim=False):
         rows[1].append("🎲 Симулировать день")
     return ReplyKeyboardMarkup(rows, resize_keyboard=True)
 
+
 def _kb_guest():
     return ReplyKeyboardMarkup([["📚 Категории"]], resize_keyboard=True)
+
 
 def home_kb(update, context):
     """Корректное меню по роли и выбранному игроку (для мастера)."""
@@ -243,23 +251,40 @@ def home_kb(update, context):
             return _kb_player_base(with_sim=(name == PLAYER_WITH_SIMULATION))
     return _kb_guest()
 
-async def go_home(update, context, text="↩️ Возврат в главное меню."):
-    if update.callback_query:
-        await context.bot.send_message(chat_id=update.effective_chat.id, text=text, reply_markup=home_kb(update, context))
-    else:
-        await update.message.reply_text(text, reply_markup=home_kb(update, context))
 
-def keyboard_for(update, context):
-    # чтобы старые вызовы keyboard_for не падали
-    return home_kb(update, context)
-
-async def end_and_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE, text: str = "↩️ Возврат в главное меню."):
+async def end_and_main_menu(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE,
+    text: str = "↩️ Возврат в главное меню.",
+):
     """Корректно завершает любой Conversation и показывает актуальное меню."""
-    chat_id = update.effective_chat.id if update.effective_chat else update.callback_query.message.chat_id
-    for k in ("inv_cat","inv_page","inv_items","remove_cat","page","items","add_cat","pending_item","pending_desc","raw_name","pending"):
+    chat_id = update.effective_chat.id
+    # чистим только временные ключи, НЕ трогаем target_id/target_name
+    for k in (
+        "inv_cat",
+        "inv_page",
+        "inv_items",
+        "remove_cat",
+        "page",
+        "items",
+        "add_cat",
+        "pending_item",
+        "pending_desc",
+        "raw_name",
+        "pending",
+    ):
         context.user_data.pop(k, None)
-    await context.bot.send_message(chat_id=chat_id, text=text, reply_markup=home_kb(update, context))
+
+    await context.bot.send_message(
+        chat_id=chat_id,
+        text=text,
+        reply_markup=home_kb(update, context),
+    )
     return ConversationHandler.END
+
+
+async def on_any_back(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    return await end_and_main_menu(update, context)
 
 
 # --------- Команды ---------
@@ -269,17 +294,27 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=home_kb(update, context),
     )
 
+
 async def help_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("/inventory, /add, /remove, /simulate, /categories")
 
+
 async def categories(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    order = ["Одежда","Снаряжение","Наборы снаряжения","Инструменты","Доспехи","Оружие","Магический предмет"]
+    order = [
+        "Одежда",
+        "Снаряжение",
+        "Наборы снаряжения",
+        "Инструменты",
+        "Доспехи",
+        "Оружие",
+        "Магический предмет",
+    ]
     await update.message.reply_text("📚 Категории:\n" + "\n".join(f"• {c}" for c in order))
 
 
 # --------- Показ инвентаря и предметов ---------
 async def show_inventory(update, context):
-    uid = update.effective_user.id
+    uid = context.user_data.get("target_id", update.effective_user.id)
     inv = get_inventory(uid)
 
     def esc(s): return html.escape(str(s)) if s else ""
@@ -302,9 +337,13 @@ async def show_inventory(update, context):
 
     joined = "\n".join(blocks)
     for i in range(0, len(joined), 3900):
-        await update.message.reply_text(joined[i:i+3900], parse_mode=constants.ParseMode.HTML, disable_web_page_preview=True)
+        await update.message.reply_text(
+            joined[i:i + 3900],
+            parse_mode=constants.ParseMode.HTML,
+            disable_web_page_preview=True,
+        )
 
-    await go_home(update, context, "Инвентарь обновлён.")
+    await end_and_main_menu(update, context, "Инвентарь обновлён.")
 
 
 async def show_inventory_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -315,16 +354,19 @@ async def show_inventory_menu(update: Update, context: ContextTypes.DEFAULT_TYPE
         ["✨ Магический предмет"],
         ["📜 Весь инвентарь", "🔙 Назад"],
     ]
-    await update.message.reply_text("📦 Выбери категорию для просмотра:", reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True))
+    await update.message.reply_text(
+        "📦 Выбери категорию для просмотра:",
+        reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True),
+    )
     return STATE_INVENTORY_CATEGORY
+
 
 async def show_inventory_list(update: Update, context: ContextTypes.DEFAULT_TYPE):
     cat = update.message.text.strip()
     if "назад" in cat.lower():
         return await end_and_main_menu(update, context)
 
-
-    uid = update.effective_user.id
+    uid = context.user_data.get("target_id", update.effective_user.id)
     inv = get_inventory(uid)
 
     if "Весь инвентарь" in cat:
@@ -349,6 +391,8 @@ async def show_inventory_list(update: Update, context: ContextTypes.DEFAULT_TYPE
     context.user_data["inv_page"] = 0
     context.user_data["inv_items"] = items
     await send_inventory_page(update, context)
+    return STATE_INVENTORY_CATEGORY
+
 
 async def send_inventory_page(update: Update, context: ContextTypes.DEFAULT_TYPE):
     cat = context.user_data["inv_cat"]
@@ -362,7 +406,9 @@ async def send_inventory_page(update: Update, context: ContextTypes.DEFAULT_TYPE
     buttons = []
     for i, entry in enumerate(page_items, start=start + 1):
         name, _ = parse_item_entry(entry)
-        buttons.append([InlineKeyboardButton(f"{i}. {name[:40]}", callback_data=f"inv_{i-1}")])
+        buttons.append(
+            [InlineKeyboardButton(f"{i}. {name[:40]}", callback_data=f"inv_{i-1}")]
+        )
 
     nav = []
     if page > 0:
@@ -373,11 +419,12 @@ async def send_inventory_page(update: Update, context: ContextTypes.DEFAULT_TYPE
         buttons.append(nav)
 
     markup = InlineKeyboardMarkup(buttons)
-    text = f"{cat} — страница {page+1}/{max(1,(len(items)-1)//per_page+1)}\nВыбери предмет для просмотра:"
+    text = f"{cat} — страница {page+1}/{max(1, (len(items)-1)//per_page+1)}\nВыбери предмет для просмотра:"
     if update.message:
         await update.message.reply_text(text, reply_markup=markup)
     else:
         await update.callback_query.edit_message_text(text, reply_markup=markup)
+
 
 async def on_inventory_nav(update: Update, context: ContextTypes.DEFAULT_TYPE):
     q = update.callback_query
@@ -387,49 +434,64 @@ async def on_inventory_nav(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif q.data == "inv_next":
         context.user_data["inv_page"] += 1
     elif q.data == "inv_exit":
-        await show_inventory_menu(update, context)
-        return
+        return await end_and_main_menu(update, context)
     await send_inventory_page(update, context)
+    return STATE_INVENTORY_CATEGORY
+
 
 async def on_inventory_item(update: Update, context: ContextTypes.DEFAULT_TYPE):
     q = update.callback_query
     await q.answer()
 
-    items = context.user_data["inv_items"]
+    items = context.user_data.get("inv_items", [])
     idx = int(q.data.replace("inv_", ""))
     if idx < 0 or idx >= len(items):
         await q.answer("Ошибка!")
-        return
+        return STATE_INVENTORY_CATEGORY
 
     entry = items[idx]
     cat = context.user_data["inv_cat"]
     name, user_desc = parse_item_entry(entry)
 
-    full = enrich_item({"name": name, "category": cat}) or {"name": name, "category": cat}
+    full = enrich_item({"name": name, "category": cat}) or {
+        "name": name,
+        "category": cat,
+    }
     if user_desc and not full.get("description"):
         full["description"] = user_desc
 
-    card = render_item_card(full)  # ← ЭТОГО НЕ ХВАТАЛО
+    card = render_item_card(full)
 
     await q.message.reply_text(
         card,
         parse_mode=constants.ParseMode.MARKDOWN,
-        disable_web_page_preview=True
+        disable_web_page_preview=True,
     )
-    return await return_after_inline(update, context)
-
+    return await end_and_main_menu(update, context)
 
 
 # --------- Удаление ---------
 def get_category_keyboard():
-    cats = ["Одежда", "Снаряжение", "Наборы снаряжения",
-            "Инструменты", "Доспехи", "Оружие", "Магический предмет"]
+    cats = [
+        "Одежда",
+        "Снаряжение",
+        "Наборы снаряжения",
+        "Инструменты",
+        "Доспехи",
+        "Оружие",
+        "Магический предмет",
+    ]
     rows = [[c] for c in cats] + [["🔙 Назад"]]
     return ReplyKeyboardMarkup(rows, resize_keyboard=True)
 
+
 async def remove_item(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Выбери категорию для удаления:", reply_markup=get_category_keyboard())
+    await update.message.reply_text(
+        "Выбери категорию для удаления:",
+        reply_markup=get_category_keyboard(),
+    )
     return STATE_REMOVE_CATEGORY
+
 
 async def show_remove_page(update: Update, context: ContextTypes.DEFAULT_TYPE):
     cat = update.message.text.strip()
@@ -441,17 +503,22 @@ async def show_remove_page(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("❌ Такой категории нет. Попробуй ещё раз.")
         return STATE_REMOVE_CATEGORY
 
-    uid = update.effective_user.id
+    uid = context.user_data.get("target_id", update.effective_user.id)
     inv = get_inventory(uid)
     items = inv.get(cat.capitalize(), [])
     if not items:
-        await update.message.reply_text(f"📭 В категории {cat} ничего нет. Выбери другую:", reply_markup=get_category_keyboard())
+        await update.message.reply_text(
+            f"📭 В категории {cat} ничего нет. Выбери другую:",
+            reply_markup=get_category_keyboard(),
+        )
         return STATE_REMOVE_CATEGORY
 
     context.user_data["remove_cat"] = cat.capitalize()
     context.user_data["page"] = 0
     context.user_data["items"] = items
     await send_remove_page(update, context)
+    return STATE_REMOVE_CATEGORY
+
 
 async def send_remove_page(update: Update, context: ContextTypes.DEFAULT_TYPE):
     cat = context.user_data["remove_cat"]
@@ -466,7 +533,9 @@ async def send_remove_page(update: Update, context: ContextTypes.DEFAULT_TYPE):
     buttons = []
     for i, entry in enumerate(page_items, start=start + 1):
         name, _ = parse_item_entry(entry)
-        buttons.append([InlineKeyboardButton(f"{i}. {name[:35]}", callback_data=f"rm_{i-1}")])
+        buttons.append(
+            [InlineKeyboardButton(f"{i}. {name[:35]}", callback_data=f"rm_{i-1}")]
+        )
 
     nav = []
     if page > 0:
@@ -475,36 +544,37 @@ async def send_remove_page(update: Update, context: ContextTypes.DEFAULT_TYPE):
         nav.append(InlineKeyboardButton("➡️", callback_data="pg_next"))
     if nav:
         buttons.append(nav)
-    # добавь после блока nav
-    if not nav:
+    else:
         buttons.append([InlineKeyboardButton("🔙 Назад", callback_data="pg_exit")])
 
     markup = InlineKeyboardMarkup(buttons)
-    text = f"🗑️ *{cat}* — страница {page+1}/{(len(items)-1)//per_page+1}\nВыбери предмет для удаления:"
+    text = (
+        f"🗑️ *{cat}* — страница {page+1}/{(len(items)-1)//per_page+1}\n"
+        f"Выбери предмет для удаления:"
+    )
     if update.message:
         await update.message.reply_text(text, reply_markup=markup, parse_mode="Markdown")
     else:
-        await update.callback_query.edit_message_text(text, reply_markup=markup, parse_mode="Markdown")
+        await update.callback_query.edit_message_text(
+            text, reply_markup=markup, parse_mode="Markdown"
+        )
+
 
 async def on_remove_nav(update: Update, context: ContextTypes.DEFAULT_TYPE):
     q = update.callback_query
     await q.answer()
     if q.data == "pg_prev":
         context.user_data["page"] -= 1
+        await send_remove_page(update, context)
+        return STATE_REMOVE_CATEGORY
     elif q.data == "pg_next":
         context.user_data["page"] += 1
+        await send_remove_page(update, context)
+        return STATE_REMOVE_CATEGORY
     elif q.data == "pg_exit":
-        await q.edit_message_text("↩️ Возврат в главное меню.")
-        context.user_data.clear()
-        await context.bot.send_message(
-            chat_id=update.effective_chat.id,
-            text="Главное меню:",
-            reply_markup=home_kb(update, context)
-        )
-        return ConversationHandler.END
+        return await end_and_main_menu(update, context)
+    return STATE_REMOVE_CATEGORY
 
-
-    await send_remove_page(update, context)
 
 async def on_remove_click(update: Update, context: ContextTypes.DEFAULT_TYPE):
     q = update.callback_query
@@ -515,58 +585,21 @@ async def on_remove_click(update: Update, context: ContextTypes.DEFAULT_TYPE):
     idx = int(q.data.replace("rm_", ""))
     if idx < 0 or idx >= len(items):
         await q.answer("Ошибка!")
-        return
+        return STATE_REMOVE_CATEGORY
 
-    uid = update.effective_user.id
+    uid = context.user_data.get("target_id", update.effective_user.id)
     inv = get_inventory(uid)
     item = items[idx]
     inv[cat].remove(item)
     save_inventory(uid, inv)
 
-    await notify_master(context.bot, update.effective_user.first_name, f"удалил предмет: [{cat}] {item}")
+    await notify_master(
+        context.bot, update.effective_user.first_name, f"удалил предмет: [{cat}] {item}"
+    )
 
     await q.edit_message_text(f"❌ Удалено: [{cat}] {item}")
-    await asyncio.sleep(0.3)  # защита от двойного колбэка
-    return await return_after_inline(update, context)
-
-
-    # --- фикс: запоминаем роль до очистки ---
-    uid = update.effective_user.id
-    is_master = uid == MASTER_ID
-    is_controlling = bool(context.user_data.get("target_id"))
-
-    # очищаем контекст, чтобы не залипало
-    context.user_data.clear()
-
-    # --- возвращаем нужное меню ---
-    chat_id = update.effective_chat.id
-
-    if is_master:
-        if is_controlling:
-            # мастер управляет игроком — возвращаем меню управления
-            await context.bot.send_message(
-                chat_id=chat_id,
-                text="↩️ Возврат в меню управления игроком.",
-                reply_markup=home_kb(update, context)
-            )
-        else:
-            # мастер в своём меню
-            await context.bot.send_message(
-                chat_id=chat_id,
-                text="↩️ Возврат в мастер-инвентарь.",
-                reply_markup=_kb_master_root()
-            )
-    else:
-        # игрок — его обычное меню
-        await context.bot.send_message(
-            chat_id=chat_id,
-            text="↩️ Возврат в главное меню.",
-            reply_markup=home_kb(update, context)
-        )
-
-    return await return_after_inline(update, context)
-
-
+    await asyncio.sleep(0.1)
+    return await end_and_main_menu(update, context)
 
 
 # --------- Симуляция ---------
@@ -576,9 +609,12 @@ async def ask_simulation_days(update: Update, context: ContextTypes.DEFAULT_TYPE
         ["7", "10", "📝 Другое"],
         ["🔙 Назад"],
     ]
-    await update.message.reply_text("⏳ На сколько дней симулировать приключение?",
-                                    reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True))
+    await update.message.reply_text(
+        "⏳ На сколько дней симулировать приключение?",
+        reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True),
+    )
     return STATE_SIMULATE_DAYS
+
 
 async def handle_simulation_days(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text.strip()
@@ -598,8 +634,9 @@ async def handle_simulation_days(update: Update, context: ContextTypes.DEFAULT_T
         await update.message.reply_text("⚠️ Введите число, пожалуйста.")
         return STATE_SIMULATE_DAYS
 
+
 async def simulate_days(update, context):
-    uid = update.effective_user.id
+    uid = context.user_data.get("target_id", update.effective_user.id)
     inv = get_inventory(uid)
     if not context.args:
         await update.message.reply_text("Используй: /simulate <число>")
@@ -613,7 +650,7 @@ async def simulate_days(update, context):
         ln, _ = parse_item_entry(lost_entry)
         fn, _ = parse_item_entry(found_entry)
 
-        lost_full  = enrich_item({"name": ln, "category": lost_cat})  if ln else None
+        lost_full = enrich_item({"name": ln, "category": lost_cat}) if ln else None
         found_full = enrich_item({"name": fn, "category": found_cat}) if fn else None
 
         out.append(
@@ -625,41 +662,16 @@ async def simulate_days(update, context):
         )
 
     save_inventory(uid, inv)
-    await update.message.reply_text("\n".join(out), parse_mode=constants.ParseMode.MARKDOWN)
-    await go_home(update, context, "🏁 Симуляция завершена! Что делаем дальше?")
-
-async def return_after_inline(update: Update, context: ContextTypes.DEFAULT_TYPE, text="↩️ Возврат в главное меню."):
-    q = update.callback_query
-    chat_id = q.message.chat_id
-    uid = update.effective_user.id
-
-    # определяем роль ДО очистки
-    is_master = uid == MASTER_ID
-    is_controlling = "target_id" in context.user_data
-
-    # очищаем временные поля
-    for k in ("inv_cat","inv_page","inv_items","remove_cat","page","items","add_cat","pending_item","pending_desc","raw_name","pending"):
-        context.user_data.pop(k, None)
-
-
-    if is_master:
-        if is_controlling:
-            kb = home_kb(update, context)
-            msg = "↩️ Возврат в меню управления игроком."
-        else:
-            kb = _kb_master_root()
-            msg = "↩️ Возврат в мастер-инвентарь."
-    else:
-        kb = home_kb(update, context)
-        msg = text
-
-    await context.bot.send_message(chat_id=chat_id, text=msg, reply_markup=kb)
-    return ConversationHandler.END
+    await update.message.reply_text(
+        "\n".join(out), parse_mode=constants.ParseMode.MARKDOWN
+    )
+    await end_and_main_menu(update, context, "🏁 Симуляция завершена! Что делаем дальше?")
 
 
 # --------- Добавление предметов ---------
-def norm(s): 
+def norm(s):
     return (s or "").strip().lower()
+
 
 def find_closest_item(name: str, category: str | None = None):
     query = norm(name)
@@ -676,7 +688,7 @@ def find_closest_item(name: str, category: str | None = None):
 
     names = [norm(i.get("name")) for i in pool if i.get("name")]
     best = process.extractOne(query, names, scorer=fuzz.WRatio)
-    if not best: 
+    if not best:
         return None
 
     best_name, score, _ = best
@@ -690,8 +702,14 @@ def find_closest_item(name: str, category: str | None = None):
 
 
 async def add_item_start(update, context):
-    if update.effective_user.id == MASTER_ID and "target_id" not in context.user_data:
-        await update.message.reply_text("⚠️ Сначала выбери игрока в «Мастер-инвентарь».", reply_markup=home_kb(update, context))
+    if (
+        update.effective_user.id == MASTER_ID
+        and "target_id" not in context.user_data
+    ):
+        await update.message.reply_text(
+            "⚠️ Сначала выбери игрока в «Мастер-инвентарь».",
+            reply_markup=home_kb(update, context),
+        )
         return ConversationHandler.END
 
     keyboard = [
@@ -701,17 +719,23 @@ async def add_item_start(update, context):
         ["Магический предмет"],
         ["🔙 Назад"],
     ]
-    await update.message.reply_text("Выбери категорию:", reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True))
+    await update.message.reply_text(
+        "Выбери категорию:",
+        reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True),
+    )
     return STATE_ADD_CATEGORY
+
 
 async def add_item_category(update, context):
     cat = update.message.text.strip()
     if cat.lower() == "назад" or cat == "🔙 Назад":
-        await go_home(update, context)
-        return ConversationHandler.END
+        return await end_and_main_menu(update, context)
 
     if cat not in ITEMS:
-        await update.message.reply_text("❌ Такой категории нет. Попробуй ещё раз.", reply_markup=get_category_keyboard())
+        await update.message.reply_text(
+            "❌ Такой категории нет. Попробуй ещё раз.",
+            reply_markup=get_category_keyboard(),
+        )
         return STATE_ADD_CATEGORY
 
     context.user_data["add_cat"] = cat
@@ -719,9 +743,10 @@ async def add_item_category(update, context):
         f"Введи название предмета для категории [{cat}]:\n"
         f"Можно добавить описание через двоеточие, например:\n"
         f"`Языки пламени: меч с огненным клинком`",
-        parse_mode=constants.ParseMode.MARKDOWN
+        parse_mode=constants.ParseMode.MARKDOWN,
     )
     return STATE_ADD_NAME
+
 
 async def add_item_name(update, context):
     uid = context.user_data.get("target_id", update.effective_user.id)
@@ -739,12 +764,26 @@ async def add_item_name(update, context):
     closest = find_closest_item(name, cat)
     if closest:
         found_name = closest["name"]
-        context.user_data["pending"] = {"uid": uid, "cat": cat, "name": found_name, "desc": user_desc}
+        context.user_data["pending"] = {
+            "uid": uid,
+            "cat": cat,
+            "name": found_name,
+            "desc": user_desc,
+        }
         found_item = enrich_item({"name": found_name, "category": cat}) or {}
-        short = re.sub(r"\s+", " ", (found_item.get("description") or "— нет описания —")).strip()
-        if len(short) > 350: short = short[:350] + "…"
-        kb = InlineKeyboardMarkup([[InlineKeyboardButton("✅ Да", callback_data="confirm_yes"),
-                                    InlineKeyboardButton("❌ Нет", callback_data="confirm_no")]])
+        short = re.sub(
+            r"\s+", " ", (found_item.get("description") or "— нет описания —")
+        ).strip()
+        if len(short) > 350:
+            short = short[:350] + "…"
+        kb = InlineKeyboardMarkup(
+            [
+                [
+                    InlineKeyboardButton("✅ Да", callback_data="confirm_yes"),
+                    InlineKeyboardButton("❌ Нет", callback_data="confirm_no"),
+                ]
+            ]
+        )
         await update.message.reply_text(
             f"🤔 Похоже, вы имели в виду *{found_name}*?\n\n{short}",
             parse_mode=constants.ParseMode.MARKDOWN,
@@ -757,14 +796,21 @@ async def add_item_name(update, context):
     custom_entry = make_custom_string(name, user_desc).strip()
     inv.setdefault(cat, []).append(custom_entry)
     save_inventory(uid, inv)
-    card = render_item_card({"name": name, "description": user_desc or "— пользовательское описание —", "category": cat})
-    await update.message.reply_text(
-        f"⚙️ Не найдено в библиотеке. Добавлен как пользовательский предмет.\n\nДобавлено в [{cat}]:\n\n{card}",
-        parse_mode=constants.ParseMode.MARKDOWN,
-        disable_web_page_preview=True
+    card = render_item_card(
+        {
+            "name": name,
+            "description": user_desc or "— пользовательское описание —",
+            "category": cat,
+        }
     )
-    await go_home(update, context)
-    return ConversationHandler.END
+    await update.message.reply_text(
+        f"⚙️ Не найдено в библиотеке. Добавлен как пользовательский предмет.\n\n"
+        f"Добавлено в [{cat}]:\n\n{card}",
+        parse_mode=constants.ParseMode.MARKDOWN,
+        disable_web_page_preview=True,
+    )
+    return await end_and_main_menu(update, context)
+
 
 async def on_add_confirm_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     q = update.callback_query
@@ -772,10 +818,10 @@ async def on_add_confirm_button(update: Update, context: ContextTypes.DEFAULT_TY
     data = q.data
 
     pend = context.user_data.get("pending") or {}
-    uid  = pend.get("uid", update.effective_user.id)
-    cat  = pend.get("cat")
+    uid = pend.get("uid", update.effective_user.id)
+    cat = pend.get("cat")
     found_name = pend.get("name")
-    user_desc  = pend.get("desc")
+    user_desc = pend.get("desc")
 
     inv = get_inventory(uid)
 
@@ -790,18 +836,25 @@ async def on_add_confirm_button(update: Update, context: ContextTypes.DEFAULT_TY
         await q.edit_message_text(
             f"✅ Добавлено в {cat}:\n\n*{found_name}*\n\n{desc}",
             parse_mode=constants.ParseMode.MARKDOWN,
-            disable_web_page_preview=True
+            disable_web_page_preview=True,
         )
         return await end_and_main_menu(update, context)
 
     # ❌ «нет, это не он» → спросим, сохранить как кастом
     if data == "confirm_no":
-        kb = InlineKeyboardMarkup([
-            [InlineKeyboardButton("✅ Да", callback_data="add_custom_yes"),
-             InlineKeyboardButton("❌ Нет", callback_data="add_custom_no")]
-        ])
-        await q.edit_message_text("⚙️ Не найдено в библиотеке.\nДобавить как пользовательский предмет?", reply_markup=kb)
-        return  # ждём следующее нажатие
+        kb = InlineKeyboardMarkup(
+            [
+                [
+                    InlineKeyboardButton("✅ Да", callback_data="add_custom_yes"),
+                    InlineKeyboardButton("❌ Нет", callback_data="add_custom_no"),
+                ]
+            ]
+        )
+        await q.edit_message_text(
+            "⚙️ Не найдено в библиотеке.\nДобавить как пользовательский предмет?",
+            reply_markup=kb,
+        )
+        return STATE_ADD_CONFIRM
 
     # ✅ добавить как кастом
     if data == "add_custom_yes":
@@ -809,14 +862,16 @@ async def on_add_confirm_button(update: Update, context: ContextTypes.DEFAULT_TY
         if ":" in raw:
             base_name, desc = [x.strip() for x in raw.split(":", 1)]
         else:
-            base_name, desc = raw.strip(), (user_desc or "— пользовательское описание —")
+            base_name, desc = raw.strip(), (
+                user_desc or "— пользовательское описание —"
+            )
 
         inv[cat].append(f"⭐ {base_name} — {desc}")
         save_inventory(uid, inv)
 
         await q.edit_message_text(
             f"Добавлено в {cat}:\n\n*{base_name}*\n\n{desc}",
-            parse_mode=constants.ParseMode.MARKDOWN
+            parse_mode=constants.ParseMode.MARKDOWN,
         )
         return await end_and_main_menu(update, context)
 
@@ -825,7 +880,7 @@ async def on_add_confirm_button(update: Update, context: ContextTypes.DEFAULT_TY
         await q.edit_message_text("🚫 Добавление отменено.")
         return await end_and_main_menu(update, context)
 
-
+    return STATE_ADD_CONFIRM
 
 
 # --------- Мастер-инвентарь ---------
@@ -834,19 +889,20 @@ async def show_master_inventory(update: Update, context: ContextTypes.DEFAULT_TY
         await update.message.reply_text("🚫 Нет доступа.")
         return
     keyboard = [[name] for name in PLAYERS.keys()] + [["🔙 Назад"]]
-    await update.message.reply_text("🎩 Выбери игрока:", reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True))
-    return STATE_INVENTORY_CATEGORY
+    await update.message.reply_text(
+        "🎩 Выбери игрока:",
+        reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True),
+    )
+
 
 async def master_select_player(update: Update, context: ContextTypes.DEFAULT_TYPE):
     name = update.message.text.strip()
     if "назад" in name.lower():
-        await update.message.reply_text("↩️ Возврат в главное меню.", reply_markup=home_kb(update, context))
-        return ConversationHandler.END
-
+        return await end_and_main_menu(update, context)
 
     if name not in PLAYERS:
         await update.message.reply_text("⚠️ Неизвестный игрок.")
-        return STATE_INVENTORY_CATEGORY
+        return
 
     context.user_data["target_id"] = PLAYERS[name]
     context.user_data["target_name"] = name
@@ -855,7 +911,6 @@ async def master_select_player(update: Update, context: ContextTypes.DEFAULT_TYP
         parse_mode="Markdown",
         reply_markup=home_kb(update, context),
     )
-    return STATE_ADD_CATEGORY
 
 
 # --------- Уведомления (мягкие) ---------
@@ -865,9 +920,12 @@ async def notify_master(bot, player_name, action):
     except Exception:
         pass
 
+
 async def notify_player(bot, player_id, action):
     try:
-        await bot.send_message(player_id, f"📜 Мастер изменил ваш инвентарь: {action}")
+        await bot.send_message(
+            player_id, f"📜 Мастер изменил ваш инвентарь: {action}"
+        )
     except Exception:
         pass
 
@@ -876,11 +934,27 @@ async def notify_player(bot, player_id, action):
 async def backup_inventory_to_github():
     ts = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     try:
-        subprocess.run(["git", "config", "--global", "user.email", os.getenv("GITHUB_EMAIL")], check=True)
-        subprocess.run(["git", "config", "--global", "user.name", os.getenv("GITHUB_NAME")], check=True)
+        subprocess.run(
+            ["git", "config", "--global", "user.email", os.getenv("GITHUB_EMAIL")],
+            check=True,
+        )
+        subprocess.run(
+            ["git", "config", "--global", "user.name", os.getenv("GITHUB_NAME")],
+            check=True,
+        )
         subprocess.run(["git", "add", "inventory_data.json"], check=True)
-        subprocess.run(["git", "commit", "-m", f"auto backup {ts}"], check=False)
-        subprocess.run(["git", "push", f"https://{os.getenv('GITHUB_TOKEN')}@github.com/{os.getenv('GITHUB_REPO')}.git", "HEAD:main"], check=False)
+        subprocess.run(
+            ["git", "commit", "-m", f"auto backup {ts}"], check=False
+        )
+        subprocess.run(
+            [
+                "git",
+                "push",
+                f"https://{os.getenv('GITHUB_TOKEN')}@github.com/{os.getenv('GITHUB_REPO')}.git",
+                "HEAD:main",
+            ],
+            check=False,
+        )
         print(f"✅ GitHub backup done at {ts}")
     except Exception as e:
         print(f"⚠️ Backup error: {e}")
@@ -896,45 +970,99 @@ async def run_bot():
 
     # разговорники
     remove_conv = ConversationHandler(
-        entry_points=[MessageHandler(filters.Regex("^➖ Удалить предмет$"), remove_item)],
-        states={ STATE_REMOVE_CATEGORY: [MessageHandler(filters.TEXT & ~filters.COMMAND, show_remove_page)] },
+        entry_points=[
+            MessageHandler(filters.Regex("^➖ Удалить предмет$"), remove_item)
+        ],
+        states={
+            STATE_REMOVE_CATEGORY: [
+                MessageHandler(
+                    filters.TEXT & ~filters.COMMAND, show_remove_page
+                ),
+                CallbackQueryHandler(on_remove_click, pattern="^rm_"),
+                CallbackQueryHandler(on_remove_nav, pattern="^pg_"),
+            ]
+        },
         fallbacks=[MessageHandler(filters.Regex(BACK_RE), on_any_back)],
     )
 
     inventory_conv = ConversationHandler(
-        entry_points=[MessageHandler(filters.Regex("^📦 Инвентарь$"), show_inventory_menu)],
-        states={ STATE_INVENTORY_CATEGORY: [MessageHandler(filters.TEXT & ~filters.COMMAND, show_inventory_list)] },
+        entry_points=[
+            MessageHandler(filters.Regex("^📦 Инвентарь$"), show_inventory_menu)
+        ],
+        states={
+            STATE_INVENTORY_CATEGORY: [
+                MessageHandler(
+                    filters.TEXT & ~filters.COMMAND, show_inventory_list
+                ),
+                CallbackQueryHandler(
+                    on_inventory_nav, pattern="^inv_(prev|next|exit)$"
+                ),
+                CallbackQueryHandler(
+                    on_inventory_item, pattern="^inv_[0-9]+$"
+                ),
+            ]
+        },
         fallbacks=[MessageHandler(filters.Regex(BACK_RE), on_any_back)],
     )
 
     simulate_conv = ConversationHandler(
-        entry_points=[MessageHandler(filters.Regex("^🎲 Симулировать день$"), ask_simulation_days)],
-        states={ STATE_SIMULATE_DAYS: [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_simulation_days)] },
+        entry_points=[
+            MessageHandler(
+                filters.Regex("^🎲 Симулировать день$"), ask_simulation_days
+            )
+        ],
+        states={
+            STATE_SIMULATE_DAYS: [
+                MessageHandler(
+                    filters.TEXT & ~filters.COMMAND, handle_simulation_days
+                )
+            ]
+        },
         fallbacks=[MessageHandler(filters.Regex(BACK_RE), on_any_back)],
     )
 
     add_conv = ConversationHandler(
-        entry_points=[MessageHandler(filters.Regex("^➕ Добавить предмет$"), add_item_start)],
+        entry_points=[
+            MessageHandler(filters.Regex("^➕ Добавить предмет$"), add_item_start)
+        ],
         states={
-            STATE_ADD_CATEGORY: [MessageHandler(filters.TEXT & ~filters.COMMAND, add_item_category)],
-            STATE_ADD_NAME:     [MessageHandler(filters.TEXT & ~filters.COMMAND, add_item_name)],
-            STATE_ADD_CONFIRM:  [CallbackQueryHandler(on_add_confirm_button, pattern="^(confirm_|add_custom_)")],
+            STATE_ADD_CATEGORY: [
+                MessageHandler(
+                    filters.TEXT & ~filters.COMMAND, add_item_category
+                )
+            ],
+            STATE_ADD_NAME: [
+                MessageHandler(filters.TEXT & ~filters.COMMAND, add_item_name)
+            ],
+            STATE_ADD_CONFIRM: [
+                CallbackQueryHandler(
+                    on_add_confirm_button,
+                    pattern="^(confirm_|add_custom_)",
+                )
+            ],
         },
         fallbacks=[MessageHandler(filters.Regex(BACK_RE), on_any_back)],
     )
-      # регистрация
+
+    # регистрация
     app.add_handler(inventory_conv)
     app.add_handler(remove_conv)
     app.add_handler(simulate_conv)
     app.add_handler(add_conv)
-    app.add_handler(MessageHandler(filters.Regex(BACK_RE), on_any_back))
-    app.add_handler(CallbackQueryHandler(on_inventory_nav,  pattern="^inv_(prev|next|exit)$"))
-    app.add_handler(CallbackQueryHandler(on_inventory_item, pattern="^inv_[0-9]+$"))
-    app.add_handler(CallbackQueryHandler(on_remove_click,   pattern="^rm_"))
-    app.add_handler(CallbackQueryHandler(on_remove_nav,     pattern="^pg_"))
 
-    app.add_handler(MessageHandler(filters.Regex("^📜 Мастер-инвентарь$"), show_master_inventory))
-    app.add_handler(MessageHandler(filters.Regex("^(Карла|Энсо|Найт|Гундар|Авитус|🔙 Назад)$"), master_select_player))
+    app.add_handler(MessageHandler(filters.Regex(BACK_RE), on_any_back))
+
+    app.add_handler(
+        MessageHandler(
+            filters.Regex("^📜 Мастер-инвентарь$"), show_master_inventory
+        )
+    )
+    app.add_handler(
+        MessageHandler(
+            filters.Regex("^(Карла|Энсо|Найт|Гундар|Авитус|🔙 Назад)$"),
+            master_select_player,
+        )
+    )
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("help", help_cmd))
@@ -943,6 +1071,7 @@ async def run_bot():
     app.add_handler(CommandHandler("simulate", simulate_days))  # по желанию
 
     from apscheduler.schedulers.asyncio import AsyncIOScheduler
+
     scheduler = AsyncIOScheduler()
     scheduler.add_job(backup_inventory_to_github, "interval", hours=24)
     scheduler.start()
@@ -953,6 +1082,6 @@ async def run_bot():
 
 if __name__ == "__main__":
     import nest_asyncio
+
     nest_asyncio.apply()
     asyncio.run(run_bot())
-
