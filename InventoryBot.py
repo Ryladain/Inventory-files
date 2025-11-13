@@ -757,6 +757,53 @@ def find_closest_item(name: str, category: str | None = None):
 
 
 
+async def add_item_start(update, context):
+    if (
+        update.effective_user.id == MASTER_ID
+        and "target_id" not in context.user_data
+    ):
+        await update.message.reply_text(
+            "⚠️ Сначала выбери игрока в «Мастер-инвентарь».",
+            reply_markup=home_kb(update, context),
+        )
+        return ConversationHandler.END
+
+    keyboard = [
+        ["Одежда", "Снаряжение"],
+        ["Наборы снаряжения", "Инструменты"],
+        ["Доспехи", "Оружие"],
+        ["Магический предмет"],
+        ["🔙 Назад"],
+    ]
+    await update.message.reply_text(
+        "Выбери категорию:",
+        reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True),
+    )
+    return STATE_ADD_CATEGORY
+
+
+async def add_item_category(update, context):
+    cat = update.message.text.strip()
+    if cat.lower() == "назад" or cat == "🔙 Назад":
+        return await end_and_main_menu(update, context)
+
+    if cat not in ITEMS:
+        await update.message.reply_text(
+            "❌ Такой категории нет. Попробуй ещё раз.",
+            reply_markup=get_category_keyboard(),
+        )
+        return STATE_ADD_CATEGORY
+
+    context.user_data["add_cat"] = cat
+    await update.message.reply_text(
+        f"Введи название предмета для категории [{cat}]:\n"
+        f"Можно добавить описание через двоеточие, например:\n"
+        f"`Языки пламени: меч с огненным клинком`",
+        parse_mode=constants.ParseMode.MARKDOWN,
+    )
+    return STATE_ADD_NAME
+
+
 async def add_item_name(update, context):
     uid = context.user_data.get("target_id", update.effective_user.id)
     inv = get_inventory(uid)
@@ -769,43 +816,7 @@ async def add_item_name(update, context):
     else:
         name, user_desc = raw_text, None
 
-    # === 1. Пытаемся найти предмет через библиотеку (enrich_item) ===
-    lib_item = enrich_item({"name": name, "category": cat})
-    if lib_item:
-        # нашли канонический предмет в каталоге
-        found_name = lib_item.get("name", name)
-        context.user_data["pending"] = {
-            "uid": uid,
-            "cat": cat,
-            "name": found_name,
-            "desc": user_desc,
-        }
-
-        short = re.sub(
-            r"\s+",
-            " ",
-            (lib_item.get("description") or "— нет описания —"),
-        ).strip()
-        if len(short) > 350:
-            short = short[:350] + "…"
-
-        kb = InlineKeyboardMarkup(
-            [
-                [
-                    InlineKeyboardButton("✅ Да", callback_data="confirm_yes"),
-                    InlineKeyboardButton("❌ Нет", callback_data="confirm_no"),
-                ]
-            ]
-        )
-        await update.message.reply_text(
-            f"🤔 Похоже, вы имели в виду *{found_name}*?\n\n{short}",
-            parse_mode=constants.ParseMode.MARKDOWN,
-            disable_web_page_preview=True,
-            reply_markup=kb,
-        )
-        return STATE_ADD_CONFIRM
-
-    # === 2. Если enrich_item не смог — пробуем fuzzy-поиск ===
+    # ищем только в подходящей библиотеке
     closest = find_closest_item(name, cat)
     if closest:
         found_name = closest["name"]
@@ -837,7 +848,7 @@ async def add_item_name(update, context):
         )
         return STATE_ADD_CONFIRM
 
-    # === 3. Ничего не нашли — добавляем как кастом ===
+    # кастом
     custom_entry = make_custom_string(name, user_desc).strip()
     inv.setdefault(cat, []).append(custom_entry)
     save_inventory(uid, inv)
@@ -855,7 +866,6 @@ async def add_item_name(update, context):
         disable_web_page_preview=True,
     )
     return await end_and_main_menu(update, context)
-
 
 
 async def on_add_confirm_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
