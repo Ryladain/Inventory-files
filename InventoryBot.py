@@ -816,7 +816,43 @@ async def add_item_name(update, context):
     else:
         name, user_desc = raw_text, None
 
-    # ищем только в подходящей библиотеке
+    # === 1. Пытаемся найти предмет через библиотеку (enrich_item) ===
+    lib_item = enrich_item({"name": name, "category": cat})
+    if lib_item:
+        # нашли канонический предмет в каталоге
+        found_name = lib_item.get("name", name)
+        context.user_data["pending"] = {
+            "uid": uid,
+            "cat": cat,
+            "name": found_name,
+            "desc": user_desc,
+        }
+
+        short = re.sub(
+            r"\s+",
+            " ",
+            (lib_item.get("description") or "— нет описания —"),
+        ).strip()
+        if len(short) > 350:
+            short = short[:350] + "…"
+
+        kb = InlineKeyboardMarkup(
+            [
+                [
+                    InlineKeyboardButton("✅ Да", callback_data="confirm_yes"),
+                    InlineKeyboardButton("❌ Нет", callback_data="confirm_no"),
+                ]
+            ]
+        )
+        await update.message.reply_text(
+            f"🤔 Похоже, вы имели в виду *{found_name}*?\n\n{short}",
+            parse_mode=constants.ParseMode.MARKDOWN,
+            disable_web_page_preview=True,
+            reply_markup=kb,
+        )
+        return STATE_ADD_CONFIRM
+
+    # === 2. Если enrich_item не смог — пробуем fuzzy-поиск ===
     closest = find_closest_item(name, cat)
     if closest:
         found_name = closest["name"]
@@ -848,7 +884,7 @@ async def add_item_name(update, context):
         )
         return STATE_ADD_CONFIRM
 
-    # кастом
+    # === 3. Ничего не нашли — добавляем как кастом ===
     custom_entry = make_custom_string(name, user_desc).strip()
     inv.setdefault(cat, []).append(custom_entry)
     save_inventory(uid, inv)
@@ -1142,3 +1178,4 @@ if __name__ == "__main__":
 
     nest_asyncio.apply()
     asyncio.run(run_bot())
+
