@@ -526,6 +526,9 @@ async def on_remove_click(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await notify_master(context.bot, update.effective_user.first_name, f"удалил предмет: [{cat}] {item}")
 
     await q.edit_message_text(f"❌ Удалено: [{cat}] {item}")
+    await asyncio.sleep(0.3)  # защита от двойного колбэка
+    return await return_after_inline(update, context)
+
 
     # --- фикс: запоминаем роль до очистки ---
     uid = update.effective_user.id
@@ -626,18 +629,18 @@ async def simulate_days(update, context):
     await go_home(update, context, "🏁 Симуляция завершена! Что делаем дальше?")
 
 async def return_after_inline(update: Update, context: ContextTypes.DEFAULT_TYPE, text="↩️ Возврат в главное меню."):
-    """Корректно возвращает меню после inline callback — учитывает, кто нажал кнопку."""
     q = update.callback_query
     chat_id = q.message.chat_id
     uid = update.effective_user.id
 
-    # определяем роль
+    # определяем роль ДО очистки
     is_master = uid == MASTER_ID
-    is_controlling = bool(context.user_data.get("target_id"))
+    is_controlling = "target_id" in context.user_data
 
-    # очищаем временные поля, чтобы не залипали состояния
+    # очищаем временные поля
     for k in ("inv_cat","inv_page","inv_items","remove_cat","page","items","add_cat","pending_item","pending_desc","raw_name","pending"):
         context.user_data.pop(k, None)
+
 
     if is_master:
         if is_controlling:
@@ -751,7 +754,8 @@ async def add_item_name(update, context):
         return STATE_ADD_CONFIRM
 
     # кастом
-    inv[cat].append(make_custom_string(name, user_desc))
+    custom_entry = make_custom_string(name, user_desc).strip()
+    inv.setdefault(cat, []).append(custom_entry)
     save_inventory(uid, inv)
     card = render_item_card({"name": name, "description": user_desc or "— пользовательское описание —", "category": cat})
     await update.message.reply_text(
