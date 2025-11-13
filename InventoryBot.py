@@ -251,6 +251,29 @@ def home_kb(update, context):
             return _kb_player_base(with_sim=(name == PLAYER_WITH_SIMULATION))
     return _kb_guest()
 
+async def master_inventory_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    # Только мастер может это вызывать
+    if update.effective_user.id != MASTER_ID:
+        await update.message.reply_text("🚫 Эта команда только для мастера.")
+        return
+
+    # подчистим временный контекст, чтобы ничего не залипло
+    for k in (
+        "inv_cat","inv_page","inv_items",
+        "remove_cat","page","items",
+        "add_cat","pending_item","pending_desc",
+        "raw_name","pending",
+        "target_id","target_name",  # выходим из режима конкретного игрока
+    ):
+        context.user_data.pop(k, None)
+
+    # тот же самый выбор игрока, что и в show_master_inventory
+    keyboard = [[name] for name in PLAYERS.keys()] + [["🔙 Назад"]]
+    await update.message.reply_text(
+        "🎩 Выбери игрока:",
+        reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
+    )
+
 
 async def end_and_main_menu(
     update: Update,
@@ -1069,6 +1092,7 @@ async def run_bot():
     app.add_handler(CommandHandler("categories", categories))
     app.add_handler(CommandHandler("inventory", show_inventory))
     app.add_handler(CommandHandler("simulate", simulate_days))  # по желанию
+    app.add_handler(CommandHandler("master", master_inventory_cmd))    
 
     from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
