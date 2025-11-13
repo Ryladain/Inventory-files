@@ -416,7 +416,7 @@ async def on_inventory_item(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode=constants.ParseMode.MARKDOWN,
         disable_web_page_preview=True
     )
-    return await end_and_main_menu(update, context)
+    return await return_after_inline(update, context)
 
 
 
@@ -561,7 +561,8 @@ async def on_remove_click(update: Update, context: ContextTypes.DEFAULT_TYPE):
             reply_markup=home_kb(update, context)
         )
 
-    return ConversationHandler.END
+    return await return_after_inline(update, context)
+
 
 
 
@@ -623,6 +624,34 @@ async def simulate_days(update, context):
     save_inventory(uid, inv)
     await update.message.reply_text("\n".join(out), parse_mode=constants.ParseMode.MARKDOWN)
     await go_home(update, context, "🏁 Симуляция завершена! Что делаем дальше?")
+
+async def return_after_inline(update: Update, context: ContextTypes.DEFAULT_TYPE, text="↩️ Возврат в главное меню."):
+    """Корректно возвращает меню после inline callback — учитывает, кто нажал кнопку."""
+    q = update.callback_query
+    chat_id = q.message.chat_id
+    uid = update.effective_user.id
+
+    # определяем роль
+    is_master = uid == MASTER_ID
+    is_controlling = bool(context.user_data.get("target_id"))
+
+    # очищаем временные поля, чтобы не залипали состояния
+    for k in ("inv_cat","inv_page","inv_items","remove_cat","page","items","add_cat","pending_item","pending_desc","raw_name","pending"):
+        context.user_data.pop(k, None)
+
+    if is_master:
+        if is_controlling:
+            kb = home_kb(update, context)
+            msg = "↩️ Возврат в меню управления игроком."
+        else:
+            kb = _kb_master_root()
+            msg = "↩️ Возврат в мастер-инвентарь."
+    else:
+        kb = home_kb(update, context)
+        msg = text
+
+    await context.bot.send_message(chat_id=chat_id, text=msg, reply_markup=kb)
+    return ConversationHandler.END
 
 
 # --------- Добавление предметов ---------
