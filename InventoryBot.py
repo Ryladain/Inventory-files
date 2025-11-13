@@ -527,30 +527,34 @@ async def on_remove_click(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await q.edit_message_text(f"❌ Удалено: [{cat}] {item}")
 
-    # Очищаем контекст
+    # --- фикс: запоминаем роль до очистки ---
+    uid = update.effective_user.id
+    is_master = uid == MASTER_ID
+    is_controlling = bool(context.user_data.get("target_id"))
+
+    # очищаем контекст, чтобы не залипало
     context.user_data.clear()
 
-    uid = update.effective_user.id
+    # --- возвращаем нужное меню ---
     chat_id = update.effective_chat.id
 
-    # 🧙‍♂️ Если мастер — возвращаем в мастер-меню
-    if uid == MASTER_ID:
-        if context.user_data.get("target_id"):
-            # Мастер управляет игроком — возвращаем меню управления
+    if is_master:
+        if is_controlling:
+            # мастер управляет игроком — возвращаем меню управления
             await context.bot.send_message(
                 chat_id=chat_id,
                 text="↩️ Возврат в меню управления игроком.",
                 reply_markup=home_kb(update, context)
             )
         else:
-            # Мастер в своём меню
+            # мастер в своём меню
             await context.bot.send_message(
                 chat_id=chat_id,
                 text="↩️ Возврат в мастер-инвентарь.",
                 reply_markup=_kb_master_root()
             )
     else:
-        # 🎲 Обычный игрок — возвращаем его личное меню
+        # игрок — его обычное меню
         await context.bot.send_message(
             chat_id=chat_id,
             text="↩️ Возврат в главное меню.",
