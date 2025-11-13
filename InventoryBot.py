@@ -700,27 +700,24 @@ def find_closest_item(name: str, category: str | None = None):
     query = norm(name)
     cat = norm(category or "")
 
-    # базовый пул
-    if "маг" in cat:
-        base = MAGIC
-    else:
-        base = NONMAGIC
+    # 1) ищем сначала в своей категории (если она есть)
+    pool_cat = [i for i in (MAGIC + NONMAGIC) if norm(i.get("category")) == cat]
 
-    # сузим пул по категории; если вдруг пусто — вернёмся к базовому
-    pool = [i for i in base if norm(i.get("category")) == cat] or base
+    if pool_cat:
+        names = [norm(i.get("name")) for i in pool_cat]
+        best = process.extractOne(query, names, scorer=fuzz.WRatio)
+        if best and best[1] >= 60:
+            best_name = best[0]
+            return next(i for i in pool_cat if norm(i.get("name")) == best_name)
 
-    names = [norm(i.get("name")) for i in pool if i.get("name")]
+    # 2) ищем во ВСЁЙ библиотеке, если в категории не нашли
+    pool_all = MAGIC + NONMAGIC
+    names = [norm(i.get("name")) for i in pool_all]
     best = process.extractOne(query, names, scorer=fuzz.WRatio)
-    if not best:
-        return None
+    if best and best[1] >= 60:
+        best_name = best[0]
+        return next(i for i in pool_all if norm(i.get("name")) == best_name)
 
-    best_name, score, _ = best
-    if score < 60:
-        return None
-
-    for it in pool:
-        if norm(it.get("name")) == best_name:
-            return it
     return None
 
 
