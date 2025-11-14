@@ -830,11 +830,11 @@ async def add_item_category(update, context):
 
 
 async def add_item_name(update, context):
-    # --- фикc: корректный выход по "Назад" ---
+    # --- корректный выход по "Назад" ---
     text_lower = (update.message.text or "").strip().lower()
     if text_lower in ("назад", "🔙 назад"):
         return await end_and_main_menu(update, context)
-    # ------------------------------------------
+    # -----------------------------------
 
     uid = context.user_data.get("target_id", update.effective_user.id)
     inv = get_inventory(uid)
@@ -842,21 +842,23 @@ async def add_item_name(update, context):
 
     raw_text = (update.message.text or "").strip()
     context.user_data["raw_name"] = raw_text
+
     if ":" in raw_text:
         name, user_desc = [x.strip() for x in raw_text.split(":", 1)]
     else:
         name, user_desc = raw_text, None
 
-    # === 1. Пытаемся найти предмет через библиотеку (enrich_item) ===
-    # Патч: пробуем найти описание разными способами
-    lib_item = (
-        enrich_item({"name": name})                                 # поиск только по имени
-        or enrich_item({"name": name, "category": cat})             # поиск по имени+категории
-        or None
-    )
+    norm_name = norm(name)
+
+    # ==========================================================
+    # 1) Пытаемся найти предмет НАПРЯМУЮ через enrich_item
+    #    (ТОЛЬКО ПО ИМЕНИ, БЕЗ КАТЕГОРИЙ)
+    # ==========================================================
+    lib_item = enrich_item({"name": name})
+
     if lib_item:
-        # нашли канонический предмет в каталоге
-        found_name = lib_item.get("name", name)
+        found_name = lib_item["name"]
+
         context.user_data["pending"] = {
             "uid": uid,
             "cat": cat,
@@ -864,22 +866,17 @@ async def add_item_name(update, context):
             "desc": user_desc,
         }
 
-        short = re.sub(
-            r"\s+",
-            " ",
-            (lib_item.get("description") or "— нет описания —"),
-        ).strip()
+        short = (lib_item.get("description") or "— нет описания —").strip()
         if len(short) > 350:
             short = short[:350] + "…"
 
-        kb = InlineKeyboardMarkup(
+        kb = InlineKeyboardMarkup([
             [
-                [
-                    InlineKeyboardButton("✅ Да", callback_data="confirm_yes"),
-                    InlineKeyboardButton("❌ Нет", callback_data="confirm_no"),
-                ]
+                InlineKeyboardButton("✅ Да", callback_data="confirm_yes"),
+                InlineKeyboardButton("❌ Нет", callback_data="confirm_no")
             ]
-        )
+        ])
+
         await update.message.reply_text(
             f"🤔 Похоже, вы имели в виду *{found_name}*?\n\n{short}",
             parse_mode=constants.ParseMode.MARKDOWN,
@@ -888,30 +885,34 @@ async def add_item_name(update, context):
         )
         return STATE_ADD_CONFIRM
 
-    # === 2. Если enrich_item не смог — пробуем fuzzy-поиск ===
+    # ==========================================================
+    # 2) Fuzzy-поиск по библиотекам (MAGIC/NONMAGIC)
+    # ==========================================================
     closest = find_closest_item(name, cat)
+
     if closest:
         found_name = closest["name"]
+
+        found_item = enrich_item({"name": found_name}) or {}
+
         context.user_data["pending"] = {
             "uid": uid,
             "cat": cat,
             "name": found_name,
             "desc": user_desc,
         }
-        found_item = enrich_item({"name": found_name, "category": cat}) or {}
-        short = re.sub(
-            r"\s+", " ", (found_item.get("description") or "— нет описания —")
-        ).strip()
+
+        short = (found_item.get("description") or "— нет описания —").strip()
         if len(short) > 350:
             short = short[:350] + "…"
-        kb = InlineKeyboardMarkup(
+
+        kb = InlineKeyboardMarkup([
             [
-                [
-                    InlineKeyboardButton("✅ Да", callback_data="confirm_yes"),
-                    InlineKeyboardButton("❌ Нет", callback_data="confirm_no"),
-                ]
+                InlineKeyboardButton("✅ Да", callback_data="confirm_yes"),
+                InlineKeyboardButton("❌ Нет", callback_data="confirm_no")
             ]
-        )
+        ])
+
         await update.message.reply_text(
             f"🤔 Похоже, вы имели в виду *{found_name}*?\n\n{short}",
             parse_mode=constants.ParseMode.MARKDOWN,
@@ -920,23 +921,26 @@ async def add_item_name(update, context):
         )
         return STATE_ADD_CONFIRM
 
-    # === 3. Ничего не нашли — добавляем как кастом ===
+    # ==========================================================
+    # 3) Не нашли — добавляем кастом
+    # ==========================================================
     custom_entry = make_custom_string(name, user_desc).strip()
     inv.setdefault(cat, []).append(custom_entry)
     save_inventory(uid, inv)
-    card = render_item_card(
-        {
-            "name": name,
-            "description": user_desc or "— пользовательское описание —",
-            "category": cat,
-        }
-    )
+
+    card = render_item_card({
+        "name": name,
+        "description": user_desc or "— пользовательское описание —",
+        "category": cat,
+    })
+
     await update.message.reply_text(
         f"⚙️ Не найдено в библиотеке. Добавлен как пользовательский предмет.\n\n"
         f"Добавлено в [{cat}]:\n\n{card}",
         parse_mode=constants.ParseMode.MARKDOWN,
         disable_web_page_preview=True,
     )
+
     return await end_and_main_menu(update, context)
 
 
@@ -954,12 +958,14 @@ async def on_add_confirm_button(update: Update, context: ContextTypes.DEFAULT_TY
 
     inv = get_inventory(uid)
 
-    # ✅ подтвердили библиотечный предмет
+    # ---------------------------------------------------------
+    # 1) Подтвердили библиотечный предмет
+    # ---------------------------------------------------------
     if data == "confirm_yes" and found_name:
         inv[cat].append(found_name)
         save_inventory(uid, inv)
 
-        found_item = enrich_item({"name": found_name, "category": cat}) or {}
+        found_item = enrich_item({"name": found_name}) or {}
         desc = (found_item.get("description") or "— нет описания —").strip()
 
         await q.edit_message_text(
@@ -969,31 +975,32 @@ async def on_add_confirm_button(update: Update, context: ContextTypes.DEFAULT_TY
         )
         return await end_and_main_menu(update, context)
 
-    # ❌ «нет, это не он» → спросим, сохранить как кастом
+    # ---------------------------------------------------------
+    # 2) "Нет" → спросить, делать ли кастом
+    # ---------------------------------------------------------
     if data == "confirm_no":
-        kb = InlineKeyboardMarkup(
+        kb = InlineKeyboardMarkup([
             [
-                [
-                    InlineKeyboardButton("✅ Да", callback_data="add_custom_yes"),
-                    InlineKeyboardButton("❌ Нет", callback_data="add_custom_no"),
-                ]
+                InlineKeyboardButton("✅ Да", callback_data="add_custom_yes"),
+                InlineKeyboardButton("❌ Нет", callback_data="add_custom_no")
             ]
-        )
+        ])
         await q.edit_message_text(
             "⚙️ Не найдено в библиотеке.\nДобавить как пользовательский предмет?",
             reply_markup=kb,
         )
         return STATE_ADD_CONFIRM
 
-    # ✅ добавить как кастом
+    # ---------------------------------------------------------
+    # 3) Добавляем как кастом
+    # ---------------------------------------------------------
     if data == "add_custom_yes":
         raw = context.user_data.get("raw_name", found_name or "Неизвестный предмет")
+
         if ":" in raw:
             base_name, desc = [x.strip() for x in raw.split(":", 1)]
         else:
-            base_name, desc = raw.strip(), (
-                user_desc or "— пользовательское описание —"
-            )
+            base_name, desc = raw.strip(), (user_desc or "— пользовательское описание —")
 
         inv[cat].append(f"⭐ {base_name} — {desc}")
         save_inventory(uid, inv)
@@ -1004,7 +1011,9 @@ async def on_add_confirm_button(update: Update, context: ContextTypes.DEFAULT_TY
         )
         return await end_and_main_menu(update, context)
 
-    # 🚫 отменили кастом
+    # ---------------------------------------------------------
+    # 4) Отменили кастом
+    # ---------------------------------------------------------
     if data == "add_custom_no":
         await q.edit_message_text("🚫 Добавление отменено.")
         return await end_and_main_menu(update, context)
@@ -1219,4 +1228,5 @@ if __name__ == "__main__":
 
     nest_asyncio.apply()
     asyncio.run(run_bot())
+
 
