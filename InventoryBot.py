@@ -830,6 +830,12 @@ async def add_item_category(update, context):
 
 
 async def add_item_name(update, context):
+    # --- фикc: корректный выход по "Назад" ---
+    text_lower = (update.message.text or "").strip().lower()
+    if text_lower in ("назад", "🔙 назад"):
+        return await end_and_main_menu(update, context)
+    # ------------------------------------------
+
     uid = context.user_data.get("target_id", update.effective_user.id)
     inv = get_inventory(uid)
     cat = context.user_data.get("add_cat")
@@ -842,7 +848,12 @@ async def add_item_name(update, context):
         name, user_desc = raw_text, None
 
     # === 1. Пытаемся найти предмет через библиотеку (enrich_item) ===
-    lib_item = enrich_item({"name": name, "category": cat})
+    # Патч: пробуем найти описание разными способами
+    lib_item = (
+        enrich_item({"name": name})                                 # поиск только по имени
+        or enrich_item({"name": name, "category": cat})             # поиск по имени+категории
+        or None
+    )
     if lib_item:
         # нашли канонический предмет в каталоге
         found_name = lib_item.get("name", name)
@@ -1208,3 +1219,4 @@ if __name__ == "__main__":
 
     nest_asyncio.apply()
     asyncio.run(run_bot())
+
