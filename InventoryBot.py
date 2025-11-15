@@ -490,6 +490,7 @@ async def on_inventory_item(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     items = context.user_data.get("inv_items", [])
     idx = int(q.data.replace("inv_", ""))
+
     if idx < 0 or idx >= len(items):
         await q.answer("Ошибка!")
         return STATE_INVENTORY_CATEGORY
@@ -502,16 +503,20 @@ async def on_inventory_item(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "name": name,
         "category": cat,
     }
+
     if user_desc and not full.get("description"):
         full["description"] = user_desc
 
-    card = render_item_card(full)
+    text = render_item_card(full)
 
-    await q.message.reply_text(
-        card,
-        parse_mode=constants.ParseMode.MARKDOWN,
-        disable_web_page_preview=True,
-    )
+    CHUNK = 3500
+    for i in range(0, len(text), CHUNK):
+        await q.message.reply_text(
+            text[i:i + CHUNK],
+            parse_mode=constants.ParseMode.MARKDOWN,
+            disable_web_page_preview=True,
+        )
+
     return await end_and_main_menu(update, context)
 
 
@@ -771,17 +776,17 @@ def norm(s):
 
 def find_closest_item(name: str, category: str | None = None):
     """
-    Поиск предмета в каталоге:
-    - если категория магическая → ищем в MAGIC
-    - иначе → в NONMAGIC
-    1) точное совпадение по имени (без регистра)
-    2) fuzzy-поиск по имени (WRatio)
+    Поиск предмета:
+    1) точное совпадение
+    2) по подстроке
+    3) fuzzy — но только если найденный предмет реально существует в каталоге
     """
+
     query = norm(name)
     if not query:
         return None
 
-    # магические предметы → MAGIC, всё остальное → NONMAGIC
+    # выбираем библиотеку
     if "маг" in norm(category or ""):
         base = MAGIC
     else:
@@ -790,14 +795,23 @@ def find_closest_item(name: str, category: str | None = None):
     if not base:
         return None
 
-    # --- 1. точное совпадение по имени ---
+    # --- 1. точное совпадение ---
     for it in base:
-        nm = norm(it.get("name", ""))
-        if nm == query:
+        if norm(it.get("name")) == query:
             return it
 
-    # --- 2. fuzzy-поиск по имени ---
-    names = [norm(i.get("name", "")) for i in base if i.get("name")]
+    # --- 2. подстрока ---
+    substring_matches = [
+        it for it in base
+        if query in norm(it.get("name", "")) or norm(it.get("name", "")) in query
+    ]
+    if len(substring_matches) == 1:
+        return substring_matches[0]
+    elif len(substring_matches) > 1:
+        return min(substring_matches, key=lambda it: len(norm(it.get("name", ""))))
+
+    # --- 3. fuzzy ---
+    names = [norm(i.get("name")) for i in base if i.get("name")]
     if not names:
         return None
 
@@ -806,12 +820,14 @@ def find_closest_item(name: str, category: str | None = None):
         return None
 
     best_name, score, _ = best
-    # нормальный порог, чтобы «цеп» попадал, а совсем мимо — нет
-    if score < 60:
+
+    # порог более строгий, чтобы отсеять случайные совпадения
+    if score < 75:
         return None
 
+    # ищем реальный элемент точно по имени
     for it in base:
-        if norm(it.get("name", "")) == best_name:
+        if norm(it.get("name")) == best_name:
             return it
 
     return None
@@ -1207,6 +1223,7 @@ if __name__ == "__main__":
 
     nest_asyncio.apply()
     asyncio.run(run_bot())
+
 
 
 
