@@ -724,17 +724,18 @@ def norm(s):
 
 def find_closest_item(name: str, category: str | None = None):
     """
-    Поиск предмета:
-    1) точное совпадение по имени (регистр не важен),
-    2) contains / подстрока,
-    3) fuzzy-поиск (rapidfuzz) с невысоким порогом.
+    Поиск предмета в нужной библиотеке:
+    - если категория магическая → ищем в MAGIC
+    - иначе → ищем в NONMAGIC
+    1) точное совпадение по имени (без учёта регистра)
+    2) fuzzy-поиск (WRatio) с порогом ~60
     """
 
     query = norm(name)
     if not query:
         return None
 
-    # магические → MAGIC, остальные → NONMAGIC
+    # Магические → MAGIC, остальные → NONMAGIC
     if "маг" in norm(category or ""):
         base = MAGIC
     else:
@@ -743,25 +744,14 @@ def find_closest_item(name: str, category: str | None = None):
     if not base:
         return None
 
-    # --- 1. Точное совпадение ---
+    # --- 1. Точное совпадение по имени ---
     for it in base:
-        nm = norm(it.get("name"))
+        nm = norm(it.get("name", ""))
         if nm == query:
             return it
 
-    # --- 2. Подстрока (contains) ---
-    substring_matches = [
-        it for it in base
-        if query in norm(it.get("name", "")) or norm(it.get("name", "")) in query
-    ]
-    if len(substring_matches) == 1:
-        return substring_matches[0]
-    elif len(substring_matches) > 1:
-        # возьмём самый короткий вариант, чтобы отсечь "лишние" названия
-        return min(substring_matches, key=lambda it: len(norm(it.get("name", ""))))
-
-    # --- 3. Fuzzy-поиск ---
-    names = [norm(i.get("name")) for i in base if i.get("name")]
+    # --- 2. Fuzzy-поиск по имени ---
+    names = [norm(i.get("name", "")) for i in base if i.get("name")]
     if not names:
         return None
 
@@ -770,15 +760,16 @@ def find_closest_item(name: str, category: str | None = None):
         return None
 
     best_name, score, _ = best
-    # порог пониже, чтобы почти всегда что-то находить
-    if score < 40:
+    # порог — 60: нормально для "Цеп" / "Наборный доспех"
+    if score < 60:
         return None
 
     for it in base:
-        if norm(it.get("name")) == best_name:
+        if norm(it.get("name", "")) == best_name:
             return it
 
     return None
+
 
 
 
@@ -1195,6 +1186,7 @@ if __name__ == "__main__":
 
     nest_asyncio.apply()
     asyncio.run(run_bot())
+
 
 
 
