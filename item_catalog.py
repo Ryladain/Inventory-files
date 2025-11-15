@@ -13,27 +13,46 @@ MAGIC_PATH    = DATA_DIR / "library.json"    # магические предме
 NONMAGIC: list[dict] = []
 MAGIC: list[dict] = []
 
-def init_catalogs(data_dir: str | Path | None = None):
-    global DATA_DIR, NONMAGIC_PATH, MAGIC_PATH, NONMAGIC, MAGIC
-    if data_dir:
-        DATA_DIR = Path(data_dir)
-        NONMAGIC_PATH = DATA_DIR / "nonmagic.json"
-        MAGIC_PATH    = DATA_DIR / "library.json"
+import json
+from pathlib import Path
 
-    def _load(path: Path) -> list[dict]:
-        try:
-            if path.exists():
-                return json.loads(path.read_text(encoding="utf-8"))
-        except Exception:
-            pass
-        return []
+MAGIC = []
+NONMAGIC = []
 
-    NONMAGIC = _load(NONMAGIC_PATH)
-    MAGIC    = _load(MAGIC_PATH)
+def init_catalogs(data_dir: str):
+    """
+    Загружает:
+    - магические предметы из library.json;
+    - немагические предметы из nonmagic.json.
+    """
+    global MAGIC, NONMAGIC
+
+    data_path = Path(data_dir)
+
+    # --- MAGIC из library.json ---
+    lib_path = data_path / "library.json"
+    if lib_path.exists():
+        with lib_path.open(encoding="utf-8") as f:
+            try:
+                MAGIC = json.load(f)
+            except Exception:
+                MAGIC = []
+    else:
+        MAGIC = []
+
+    # --- NONMAGIC из nonmagic.json ---
+    nonmagic_path = data_path / "nonmagic.json"
+    if nonmagic_path.exists():
+        with nonmagic_path.open(encoding="utf-8") as f:
+            try:
+                NONMAGIC = json.load(f)
+            except Exception:
+                NONMAGIC = []
+    else:
+        NONMAGIC = []
 
     print(f"📚 Загружено: {len(MAGIC)} магических и {len(NONMAGIC)} немагических предметов.")
-    return MAGIC, NONMAGIC   # ← вот эта строчка
-
+    return MAGIC, NONMAGIC
 
 
 def _norm(s: str) -> str:
@@ -155,3 +174,4 @@ def render_item_card(item: dict) -> str:
         lines.append(f"[Источник]({src})")
 
     return "\n".join(lines)
+
