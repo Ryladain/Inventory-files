@@ -1196,7 +1196,7 @@ async def run_bot():
     )
     app.add_handler(
         MessageHandler(
-            filters.Regex("^(Карла|Энсо|Найт|Гундар|Авитус|🔙 Назад)$"),
+            filters.Regex("^(Карла|Энсо|Найт|Гундар|Рошах|🔙 Назад)$"),
             master_select_player,
         )
     )
@@ -1223,6 +1223,7 @@ if __name__ == "__main__":
 
     nest_asyncio.apply()
     asyncio.run(run_bot())
+
 
 
 
